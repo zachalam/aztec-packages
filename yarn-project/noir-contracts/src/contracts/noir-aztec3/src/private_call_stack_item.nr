@@ -1,8 +1,4 @@
-use crate::abi::CallContext;
-use crate::abi::ContractDeploymentData;
-use crate::abi::Outputs;
 use crate::abi::PrivateCircuitPublicInputs;
-use crate::types::vec::BoundedVec;
 use crate::utils::arr_copy_slice;
 
 #[builtin(callPrivateFunction)]
@@ -32,7 +28,7 @@ struct PrivateCallStackItem {
 }
 
 impl PrivateCallStackItem {
-    fn call(contract_address: Field, function_selector: Field, args: [Field; crate::abi::MAX_ARGS], mut outputs: Outputs) -> (Self, Outputs) {
+    fn call(contract_address: Field, function_selector: Field, args: [Field; crate::abi::MAX_ARGS]) -> Self {
         let fields = call_private_function_internal(contract_address, function_selector, args);
         let item = PrivateCallStackItem {
             contract_address: fields[0],
@@ -41,45 +37,15 @@ impl PrivateCallStackItem {
                 is_private: fields[2] as bool,
                 is_constructor: fields[3] as bool,
             },
-            public_inputs: PrivateCircuitPublicInputs {
-                call_context: CallContext {
-                    msg_sender : fields[4],
-                    storage_contract_address : fields[5],
-                    portal_contract_address : fields[6],
-
-                    is_delegate_call : fields[7] as bool,
-                    is_static_call : fields[8] as bool,
-                    is_contract_deployment: fields[9] as bool
-                },
-                // TODO handle the offsets as a variable incremented during extraction?
-                args: arr_copy_slice(fields, [0; crate::abi::MAX_ARGS], 10),
-                return_values: arr_copy_slice(fields, [0; crate::abi::MAX_RETURN_VALUES], 18),
-                emitted_events: arr_copy_slice(fields, [0; crate::abi::MAX_LOGS], 22),
-                new_commitments: arr_copy_slice(fields, [0; crate::abi::MAX_NEW_COMMITMENTS], 26),
-                new_nullifiers: arr_copy_slice(fields, [0; crate::abi::MAX_NEW_NULLIFIERS], 30),
-                private_call_stack: arr_copy_slice(fields, [0; crate::abi::MAX_PRIVATE_CALL_STACK], 34),
-                public_call_stack: arr_copy_slice(fields, [0; crate::abi::MAX_PUBLIC_CALL_STACK], 38),
-                l1_msg_stack:arr_copy_slice(fields, [0; crate::abi::MAX_L1_MSG_STACK], 42),
-                historic_private_data_tree_root: fields[44],
-                historic_private_nullifier_tree_root: fields[45],
-                historic_contract_tree_root: fields[46],
-                contract_deployment_data: ContractDeploymentData {
-                    constructor_vk_hash : fields[47],
-                    function_tree_root : fields[48],
-                    contract_address_salt : fields[49],
-                    portal_contract_address : fields[50],
-                },
-            },
+            public_inputs: PrivateCircuitPublicInputs::deserialize(arr_copy_slice(fields, [0; crate::abi::PUBLIC_INPUTS_LENGTH], 4)),
         };
         constrain contract_address == item.contract_address;
         constrain function_selector == item.function_data.function_selector;
         for i in 0..crate::abi::MAX_ARGS {
             constrain args[i] == item.public_inputs.args[i];
-        }
+        };
 
-        outputs.private_call_stack = outputs.private_call_stack.push(item.hash());
-
-        (item, outputs)
+        item
     }
 
     fn hash(self) -> Field {

@@ -1,8 +1,8 @@
 contract PublicToken {
+    use dep::aztec3::abi;
     use dep::aztec3::abi::Inputs;
-    use dep::aztec3::abi::Outputs;
-    use dep::aztec3::abi::FinalOutputs;
     use dep::aztec3::abi::CallContext;
+    use dep::aztec3::context::PrivateFunctionExecutionContext;
     use dep::aztec3::types::point::Point;
     use dep::aztec3::state_vars::storage_map::StorageMap;
     use dep::aztec3::state_vars::storage_field::StorageField;
@@ -11,10 +11,10 @@ contract PublicToken {
 
     /// ABI constructor []
     fn constructor(
-        inputs: pub Inputs,
-    ) -> pub FinalOutputs {
-        let outputs = Outputs::new();
-        outputs.finish(inputs)
+        inputs: Inputs,
+        result: pub [Field; abi::PUBLIC_INPUTS_LENGTH],
+    ) {
+        PrivateFunctionExecutionContext::new(inputs, result).finish();
     }
 
     /// ABI mint [{"name":"amount","type":{"kind":"field"},"visibility":"public"},{"name":"recipient","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}}]

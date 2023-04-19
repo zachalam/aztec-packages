@@ -8,8 +8,8 @@ global MAX_PUBLIC_CALL_STACK: comptime Field = 4;
 global MAX_L1_MSG_STACK : comptime Field = 2;
 global PUBLIC_INPUTS_LENGTH : comptime Field = 47;
 
-use crate::notes::value_note::Note;
 use crate::types::vec::BoundedVec;
+use crate::utils::arr_copy_slice;
 
 // Inputs are expected to be provided to each contract function
 struct Inputs {
@@ -44,6 +44,15 @@ impl CallContext {
             self.is_contract_deployment as Field,
         ]
     }
+
+    fn constrain_equality(self, another: CallContext) {
+        let self_serialized = self.serialize();
+        let another_serialized = another.serialize();
+
+        for i in 0..self_serialized.len(){
+            constrain self_serialized[i] == another_serialized[i];
+        }
+    }
 }
 
 struct ContractDeploymentData {
@@ -61,6 +70,15 @@ impl ContractDeploymentData {
             self.contract_address_salt,
             self.portal_contract_address,
         ]
+    }
+
+    fn constrain_equality(self, another: ContractDeploymentData) {
+        let self_serialized = self.serialize();
+        let another_serialized = another.serialize();
+
+        for i in 0..self_serialized.len(){
+            constrain self_serialized[i] == another_serialized[i];
+        }
     }
 }
 
@@ -103,111 +121,44 @@ impl PrivateCircuitPublicInputs {
         fields = fields.push_array(self.contract_deployment_data.serialize());
         fields.storage
     }
-}
 
-// When finished, one can call .finish() to convert back to the abi
-struct Outputs {
-    return_values : BoundedVec<Field, MAX_RETURN_VALUES>,
-    logs : BoundedVec<Field, MAX_LOGS>,
+    fn deserialize(fields: [Field; PUBLIC_INPUTS_LENGTH]) -> PrivateCircuitPublicInputs {
+        PrivateCircuitPublicInputs {
+            call_context: CallContext {
+                msg_sender : fields[0],
+                storage_contract_address : fields[1],
+                portal_contract_address : fields[2],
 
-    new_commitments: BoundedVec<Field, MAX_NEW_COMMITMENTS>,
-    new_nullifiers: BoundedVec<Field, MAX_NEW_NULLIFIERS>,
-
-    private_call_stack : BoundedVec<Field, MAX_PRIVATE_CALL_STACK>,
-    public_call_stack : BoundedVec<Field, MAX_PUBLIC_CALL_STACK>,
-    l1_message_stack : BoundedVec<Field, MAX_L1_MSG_STACK>,
-
-    new_note_values: BoundedVec<Field, MAX_NEW_COMMITMENTS>,
-    new_note_owner_xs: BoundedVec<Field, MAX_NEW_COMMITMENTS>,
-    new_note_owner_ys: BoundedVec<Field, MAX_NEW_COMMITMENTS>,
-    new_note_randomness: BoundedVec<Field, MAX_NEW_COMMITMENTS>,
-    new_note_nonce: BoundedVec<Field, MAX_NEW_COMMITMENTS>,
-    new_note_is_realsies: BoundedVec<bool, MAX_NEW_COMMITMENTS>,
-
-    nullified_note_values: BoundedVec<Field, MAX_NEW_NULLIFIERS>,
-    nullified_note_owner_xs: BoundedVec<Field, MAX_NEW_NULLIFIERS>,
-    nullified_note_owner_ys: BoundedVec<Field, MAX_NEW_NULLIFIERS>,
-    nullified_note_randomness: BoundedVec<Field, MAX_NEW_NULLIFIERS>,
-    nullified_note_nonce: BoundedVec<Field, MAX_NEW_NULLIFIERS>,
-    nullified_note_is_realsies: BoundedVec<bool, MAX_NEW_NULLIFIERS>,
-}
-
-impl Outputs {
-    fn new() -> Outputs {
-        Outputs {
-            return_values: BoundedVec::new(0),
-            logs: BoundedVec::new(0),
-
-            new_commitments: BoundedVec::new(0),
-            new_nullifiers: BoundedVec::new(0),
-
-            private_call_stack: BoundedVec::new(0),
-            public_call_stack: BoundedVec::new(0),
-            l1_message_stack: BoundedVec::new(0),
-
-            new_note_values: BoundedVec::new(0),
-            new_note_owner_xs: BoundedVec::new(0),
-            new_note_owner_ys: BoundedVec::new(0),
-            new_note_randomness: BoundedVec::new(0),
-            new_note_nonce: BoundedVec::new(0),
-            new_note_is_realsies: BoundedVec::new(false),
-
-            nullified_note_values: BoundedVec::new(0),
-            nullified_note_owner_xs: BoundedVec::new(0),
-            nullified_note_owner_ys: BoundedVec::new(0),
-            nullified_note_randomness: BoundedVec::new(0),
-            nullified_note_nonce: BoundedVec::new(0),
-            nullified_note_is_realsies: BoundedVec::new(false),
+                is_delegate_call : fields[3] as bool,
+                is_static_call : fields[4] as bool,
+                is_contract_deployment: fields[5] as bool
+            },
+            // TODO handle the offsets as a variable incremented during extraction?
+            args: arr_copy_slice(fields, [0; crate::abi::MAX_ARGS], 6),
+            return_values: arr_copy_slice(fields, [0; crate::abi::MAX_RETURN_VALUES], 14),
+            emitted_events: arr_copy_slice(fields, [0; crate::abi::MAX_LOGS], 18),
+            new_commitments: arr_copy_slice(fields, [0; crate::abi::MAX_NEW_COMMITMENTS], 22),
+            new_nullifiers: arr_copy_slice(fields, [0; crate::abi::MAX_NEW_NULLIFIERS], 26),
+            private_call_stack: arr_copy_slice(fields, [0; crate::abi::MAX_PRIVATE_CALL_STACK], 30),
+            public_call_stack: arr_copy_slice(fields, [0; crate::abi::MAX_PUBLIC_CALL_STACK], 34),
+            l1_msg_stack:arr_copy_slice(fields, [0; crate::abi::MAX_L1_MSG_STACK], 38),
+            historic_private_data_tree_root: fields[40],
+            historic_private_nullifier_tree_root: fields[41],
+            historic_contract_tree_root: fields[42],
+            contract_deployment_data: ContractDeploymentData {
+                constructor_vk_hash : fields[43],
+                function_tree_root : fields[44],
+                contract_address_salt : fields[45],
+                portal_contract_address : fields[46],
+            },
         }
     }
 
-    // When noir uses user-defined serialization of fields, we can return public inputs instead
-    fn finish(self, inputs: Inputs) -> [Field; PUBLIC_INPUTS_LENGTH] {
-        let priv_circuit_pub_inputs = PrivateCircuitPublicInputs {
-            call_context: inputs.call_context,
-            args: inputs.args,
-            return_values: self.return_values.storage,
-            emitted_events: self.logs.storage,
-            new_commitments: self.new_commitments.storage,
-            new_nullifiers: self.new_nullifiers.storage,
-            private_call_stack: self.private_call_stack.storage,
-            public_call_stack: self.public_call_stack.storage,
-            l1_msg_stack: self.l1_message_stack.storage,
-            historic_private_data_tree_root: inputs.old_private_data_tree_root,
-            historic_private_nullifier_tree_root: inputs.old_nullifier_tree_root,
-            historic_contract_tree_root: inputs.old_contract_tree_root,
-            contract_deployment_data: inputs.contract_deployment_data,
-        };
-        priv_circuit_pub_inputs.serialize()
-    }
-
-    fn push_new_note_hash(mut self: Self, note_hash: Field) -> Self {
-        self.new_commitments = self.new_commitments.push(note_hash);
-        self
-    }
-
-    fn push_new_nullifier(mut self: Self, nullifier: Field) -> Self {
-        self.new_nullifiers = self.new_nullifiers.push(nullifier);
-        self
-    }
-
-    fn push_new_note(mut self: Self, note: Note) -> Self {
-        self.new_note_values = self.new_note_values.push(note.value);
-        self.new_note_owner_xs = self.new_note_owner_xs.push(note.owner.x);
-        self.new_note_owner_ys = self.new_note_owner_ys.push(note.owner.y);
-        self.new_note_randomness = self.new_note_randomness.push(note.randomness);
-        self.new_note_nonce = self.new_note_nonce.push(note.nonce);
-        self.new_note_is_realsies = self.new_note_is_realsies.push(note.is_real);
-        self
-    }
-
-    fn push_nullified_note(mut self: Self, note: Note) -> Self {
-        self.nullified_note_values = self.nullified_note_values.push(note.value);
-        self.nullified_note_owner_xs = self.nullified_note_owner_xs.push(note.owner.x);
-        self.nullified_note_owner_ys = self.nullified_note_owner_ys.push(note.owner.y);
-        self.nullified_note_randomness = self.nullified_note_randomness.push(note.randomness);
-        self.nullified_note_nonce = self.nullified_note_nonce.push(note.nonce);
-        self.nullified_note_is_realsies = self.nullified_note_is_realsies.push(note.is_real);
-        self
+    fn constrain_equality(self, another: PrivateCircuitPublicInputs){
+        let another_serialized = another.serialize();
+        let self_serialized = self.serialize();
+        for i in 0..self_serialized.len() {
+            constrain self_serialized[i] == another_serialized[i];
+        }
     }
 }
