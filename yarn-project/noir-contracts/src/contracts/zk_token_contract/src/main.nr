@@ -1,4 +1,4 @@
-contract PrivateToken {
+contract ZkToken {
     use dep::aztec3::abi;
     use dep::aztec3::abi::Inputs;
     use dep::aztec3::context::PrivateFunctionExecutionContext;
@@ -9,7 +9,8 @@ contract PrivateToken {
 
     global balances = Map { storage_slot: 1 };
 
-    /// ABI constructor [{"name":"value","type":{"kind":"field"},"visibility":"public"},{"name":"owner","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}]},"visibility":"public"}]
+    /// ABI constructor params [{"name":"value","type":{"kind":"field"},"visibility":"public"},{"name":"owner","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}]},"visibility":"public"}]
+    /// ABI constructor return []
     fn constructor(
         inputs: Inputs,
         result: pub [Field; abi::PUBLIC_INPUTS_LENGTH],
@@ -20,7 +21,7 @@ contract PrivateToken {
         let owner = Point::new(inputs.args[1], inputs.args[2]);
 
         let owner_balance = balances.at(owner.x);
-        let note = Note::new(initial_supply, owner, 0);
+        let note = Note::new(initial_supply, owner);
 
         context = owner_balance.insert(context, note);
         
@@ -28,7 +29,8 @@ contract PrivateToken {
     }
 
 
-    /// ABI mint [{"name":"value","type":{"kind":"field"},"visibility":"public"},{"name":"owner","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}]},"visibility":"public"}]
+    /// ABI mint params [{"name":"value","type":{"kind":"field"},"visibility":"public"},{"name":"owner","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}]},"visibility":"public"}]
+    /// ABI mint return []
     fn mint(
         inputs: Inputs,
         result: pub [Field; abi::PUBLIC_INPUTS_LENGTH],
@@ -39,14 +41,15 @@ contract PrivateToken {
         let owner = Point::new(inputs.args[1], inputs.args[2]);
 
         let owner_balance = balances.at(owner.x);
-        let note = Note::new(amount, owner, 0);
+        let note = Note::new(amount, owner);
 
         context = owner_balance.insert(context, note);
         
         context.finish();
     }
 
-    /// ABI transfer [{"name":"amount","type":{"kind":"field"},"visibility":"public"},{"name":"sender","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}},{"name":"recipient","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}}]
+    /// ABI transfer params [{"name":"amount","type":{"kind":"field"},"visibility":"public"},{"name":"sender","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}},{"name":"recipient","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}}]
+    /// ABI transfer return []
     fn transfer(
         inputs: Inputs,
         result: pub [Field; abi::PUBLIC_INPUTS_LENGTH],
@@ -63,21 +66,12 @@ contract PrivateToken {
         context = get_result.0;
         let (note1, note2) = get_result.1;
 
-        let constrain_note = |note: Note, sender_forwarded: Point| {
-            if note.is_real {
-                constrain sender_forwarded.x == note.owner.x;
-                constrain sender_forwarded.y == note.owner.y;
-            } else {
-                constrain note.value == 0;
-            }
-        };
-
         // TODO: Removing this return breaks the circuit (???)
         context.return_values = context.return_values.push(note1.is_real as Field);
         context.return_values = context.return_values.push(note2.is_real as Field);
 
-        constrain_note(note1, sender);
-        constrain_note(note2, sender);
+        note1.validate(sender);
+        note2.validate(sender);
 
         let sum = note1.value + note2.value;
         constrain sum as u64 >= amount as u64;
@@ -86,8 +80,8 @@ contract PrivateToken {
         context = sender_balance.remove(inputs, context, note1);
         context = sender_balance.remove(inputs, context, note2);
 
-        let recipient_note = Note::new(amount, recipient, 0);
-        let change_note = Note::new(change_value, sender, 1);
+        let change_note = Note::new(change_value, sender);
+        let recipient_note = Note::new(amount, recipient);
 
         let recipient_balance = balances.at(recipient.x);
 

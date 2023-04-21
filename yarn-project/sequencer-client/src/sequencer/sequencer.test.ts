@@ -1,10 +1,13 @@
 import { makeEmptyProof } from '@aztec/circuits.js';
 import { P2P, P2PClientState } from '@aztec/p2p';
-import { L2Block, UnverifiedData } from '@aztec/types';
+import { L2Block, PrivateTx, Tx, UnverifiedData } from '@aztec/types';
 import { MerkleTreeId, MerkleTreeOperations, WorldStateRunningState, WorldStateSynchroniser } from '@aztec/world-state';
 import { MockProxy, mock } from 'jest-mock-extended';
+import times from 'lodash.times';
 import { BlockBuilder } from '../block_builder/index.js';
-import { L1Publisher, makeEmptyTx, makeTx } from '../index.js';
+import { L1Publisher, makeEmptyPrivateTx, makePrivateTx } from '../index.js';
+import { makeProcessedTx } from './processed_tx.js';
+import { PublicProcessor } from './public_processor.js';
 import { Sequencer } from './sequencer.js';
 
 describe('sequencer', () => {
@@ -13,6 +16,7 @@ describe('sequencer', () => {
   let worldState: MockProxy<WorldStateSynchroniser>;
   let blockBuilder: MockProxy<BlockBuilder>;
   let merkleTreeOps: MockProxy<MerkleTreeOperations>;
+  let publicProcessor: MockProxy<PublicProcessor>;
 
   let lastBlockNumber: number;
 
@@ -34,11 +38,15 @@ describe('sequencer', () => {
       status: () => Promise.resolve({ state: WorldStateRunningState.IDLE, syncedToL2Block: lastBlockNumber }),
     });
 
-    sequencer = new TestSubject(publisher, p2p, worldState, blockBuilder);
+    publicProcessor = mock<PublicProcessor>({
+      process: async txs => [await Promise.all(txs.map(tx => makeProcessedTx(tx as PrivateTx))), []],
+    });
+
+    sequencer = new TestSubject(publisher, p2p, worldState, blockBuilder, publicProcessor);
   });
 
   it('builds a block out of a single tx', async () => {
-    const tx = makeTx();
+    const tx = makePrivateTx();
     const block = L2Block.random(lastBlockNumber + 1);
     const proof = makeEmptyProof();
 
@@ -50,16 +58,19 @@ describe('sequencer', () => {
     await sequencer.initialSync();
     await sequencer.work();
 
-    const expectedTxs = [tx, makeEmptyTx(), makeEmptyTx(), makeEmptyTx()];
+    const expectedTxHashes = await Tx.getHashes([tx, ...times(3, makeEmptyPrivateTx)]);
     const expectedUnverifiedData = tx.unverifiedData;
 
-    expect(blockBuilder.buildL2Block).toHaveBeenCalledWith(lastBlockNumber + 1, expectedTxs);
+    expect(blockBuilder.buildL2Block).toHaveBeenCalledWith(
+      lastBlockNumber + 1,
+      expectedTxHashes.map(hash => expect.objectContaining({ hash })),
+    );
     expect(publisher.processL2Block).toHaveBeenCalledWith(block);
     expect(publisher.processUnverifiedData).toHaveBeenCalledWith(lastBlockNumber + 1, expectedUnverifiedData);
   });
 
   it('builds a block out of several txs rejecting double spends', async () => {
-    const txs = [makeTx(0x10000), makeTx(0x20000), makeTx(0x30000)];
+    const txs = [makePrivateTx(0x10000), makePrivateTx(0x20000), makePrivateTx(0x30000)];
     const doubleSpendTx = txs[1];
     const block = L2Block.random(lastBlockNumber + 1);
     const proof = makeEmptyProof();
@@ -80,13 +91,16 @@ describe('sequencer', () => {
     await sequencer.initialSync();
     await sequencer.work();
 
-    const expectedTxs = [txs[0], txs[2], makeEmptyTx(), makeEmptyTx()];
+    const expectedTxHashes = await Tx.getHashes([txs[0], txs[2], makeEmptyPrivateTx(), makeEmptyPrivateTx()]);
     const expectedUnverifiedData = new UnverifiedData([
       ...txs[0].unverifiedData.dataChunks,
       ...txs[2].unverifiedData.dataChunks,
     ]);
 
-    expect(blockBuilder.buildL2Block).toHaveBeenCalledWith(lastBlockNumber + 1, expectedTxs);
+    expect(blockBuilder.buildL2Block).toHaveBeenCalledWith(
+      lastBlockNumber + 1,
+      expectedTxHashes.map(hash => expect.objectContaining({ hash })),
+    );
     expect(publisher.processL2Block).toHaveBeenCalledWith(block);
     expect(publisher.processUnverifiedData).toHaveBeenCalledWith(lastBlockNumber + 1, expectedUnverifiedData);
     expect(p2p.deleteTxs).toHaveBeenCalledWith([await doubleSpendTx.getTxHash()]);

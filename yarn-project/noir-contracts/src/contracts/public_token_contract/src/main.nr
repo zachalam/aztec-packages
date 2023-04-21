@@ -9,7 +9,8 @@ contract PublicToken {
 
     global balances = StorageMap { storage_slot: 1 };
 
-    /// ABI constructor []
+    /// ABI constructor params []
+    /// ABI constructor return []
     fn constructor(
         inputs: Inputs,
         result: pub [Field; abi::PUBLIC_INPUTS_LENGTH],
@@ -17,7 +18,8 @@ contract PublicToken {
         PrivateFunctionExecutionContext::new(inputs, result).finish();
     }
 
-    /// ABI mint [{"name":"amount","type":{"kind":"field"},"visibility":"public"},{"name":"recipient","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}}]
+    /// ABI mint params [{"name":"amount","type":{"kind":"field"},"visibility":"public"},{"name":"recipient","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}}]
+    /// ABI mint return [{"kind":"field"}]
     fn mint(
         _call_context: pub CallContext,
         amount: pub Field,
@@ -28,7 +30,8 @@ contract PublicToken {
     }
 
 
-    /// ABI transfer [{"name":"amount","type":{"kind":"field"},"visibility":"public"},{"name":"recipient","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}}]
+    /// ABI transfer params [{"name":"amount","type":{"kind":"field"},"visibility":"public"},{"name":"recipient","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}}]
+    /// ABI transfer return [{"kind":"field"}]
     fn transfer(
         call_context: pub CallContext,
         amount: pub Field,
@@ -38,12 +41,14 @@ contract PublicToken {
         
         let sender_balance = balances.at(sender);
         let recipient_balance = balances.at(recipient.x);
+
+        let current_sender_balance = sender_balance.read();
         let current_recipient_balance = recipient_balance.read();
 
         // TODO: Handle larger integer values ("long integers are not yet supported")
-        if (sender_balance.read() as u120) > (amount as u120) {
+        if (current_sender_balance as u120) > (amount as u120) {
             // TODO: Compiler complains if we don't assign the result of the write to anything
-            let _void1 = sender_balance.write(sender_balance.read() - amount);
+            let _void1 = sender_balance.write(current_sender_balance - amount);
             recipient_balance.write(current_recipient_balance + amount)
         } else {
             // TODO: Revert if there is not enough balance

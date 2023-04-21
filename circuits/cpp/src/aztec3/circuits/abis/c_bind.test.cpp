@@ -2,7 +2,7 @@
 
 #include "tx_request.hpp"
 #include "function_leaf_preimage.hpp"
-#include "aztec3/circuits/abis/private_kernel/new_contract_data.hpp"
+#include "aztec3/circuits/abis/new_contract_data.hpp"
 
 #include <barretenberg/stdlib/merkle_tree/membership.hpp>
 #include <barretenberg/numeric/random/engine.hpp>
@@ -13,7 +13,7 @@
 namespace {
 
 using NT = aztec3::utils::types::NativeTypes;
-using aztec3::circuits::abis::private_kernel::NewContractData;
+using aztec3::circuits::abis::NewContractData;
 
 auto& engine = numeric::random::get_debug_engine();
 
@@ -140,7 +140,7 @@ TEST(abi_tests, compute_function_leaf)
 {
     // Construct FunctionLeafPreimage with some randomized fields
     FunctionLeafPreimage<NT> preimage = FunctionLeafPreimage<NT>{
-        .function_selector = NT::fr::random_element(),
+        .function_selector = engine.get_random_uint32(),
         .is_private = static_cast<bool>(engine.get_random_uint8() & 1),
         .vk_hash = NT::fr::random_element(),
         .acir_hash = NT::fr::random_element(),

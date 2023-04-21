@@ -1,14 +1,14 @@
 #include <array>
 #include <aztec3/circuits/abis/function_data.hpp>
 #include "aztec3/circuits/abis/function_leaf_preimage.hpp"
-#include <aztec3/circuits/abis/private_kernel/new_contract_data.hpp>
+#include <aztec3/circuits/abis/new_contract_data.hpp>
 #include <aztec3/constants.hpp>
 
 namespace aztec3::circuits {
 
 using abis::FunctionData;
+using aztec3::circuits::abis::ContractLeafPreimage;
 using aztec3::circuits::abis::FunctionLeafPreimage;
-using aztec3::circuits::abis::private_kernel::ContractLeafPreimage;
 
 template <typename NCT> typename NCT::fr compute_args_hash(std::array<typename NCT::fr, ARGS_LENGTH> args)
 {
@@ -126,7 +126,7 @@ typename NCT::fr root_from_sibling_path(typename NCT::fr const& leaf,
  */
 template <typename NCT>
 typename NCT::fr function_tree_root_from_siblings(
-    typename NCT::fr const& function_selector,
+    typename NCT::uint32 const& function_selector,
     typename NCT::boolean const& is_private,
     typename NCT::fr const& vk_hash,
     typename NCT::fr const& acir_hash,
