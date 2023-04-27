@@ -57,16 +57,7 @@ export class PublicExecution {
     const initialWitness = getInitialWitness(this.args, this.callContext);
     const stateActions = new StateActionsCollector(this.db, this.contractAddress);
 
-    const notAvailable = () => Promise.reject(`Built-in not available for public execution simulation`);
-
     const { partialWitness } = await acvm(acir, initialWitness, {
-      getSecretKey: notAvailable,
-      getNotes2: notAvailable,
-      getRandomField: notAvailable,
-      notifyCreatedNote: notAvailable,
-      notifyNullifiedNote: notAvailable,
-      callPrivateFunction: notAvailable,
-      viewNotesPage: notAvailable,
       storageRead: async ([slot]) => {
         const storageSlot = fromACVMField(slot);
         const value = await stateActions.read(storageSlot);

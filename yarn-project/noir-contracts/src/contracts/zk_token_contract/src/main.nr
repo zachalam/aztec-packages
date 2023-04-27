@@ -1,6 +1,6 @@
 contract ZkToken {
     mod balance_utils;
-    use dep::aztec3::abi::Inputs;
+    use dep::aztec3::abi;
     use dep::aztec3::context::PrivateFunctionContext;
     use dep::aztec3::notes::value_note::Note;
     use dep::aztec3::types::point::Point;
@@ -13,84 +13,45 @@ contract ZkToken {
     // `balances: Mapping<Field, Set<Note>>;`
     //*********************************/
 
-    /// ABI constructor type "secret"
-    /// ABI constructor params [{"name":"value","type":{"kind":"field"},"visibility":"public"},{"name":"owner","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}]},"visibility":"public"}]
-    /// ABI constructor return []
-    fn constructor(
-        //*********************************/
-        // Should eventually be hidden:
-        inputs: pub Inputs,
-        //*********************************/
-
-        // initial_supply: pub Field, 
-        // owner: pub Point,
-    ) -> pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
-        //*********************************/
-        // Should eventually be hidden:
-        let initial_supply = inputs.args[0];
-        let owner = Point::new(inputs.args[1], inputs.args[2]);
-
+    fn constructor(initial_supply: pub Field, owner: pub Point) -> pub [Field; abi::PUBLIC_INPUTS_LENGTH] {
         let mut context = PrivateFunctionContext::new();
-        //*********************************/
+        context = context.push_args([initial_supply, owner.x, owner.y]);
 
         let owner_balance = balances.at(owner.x);
         let note = Note::new(initial_supply, owner);
 
         owner_balance.insert(context, note)
-            .finish(inputs)
+            .finish()
     }
 
-    /// ABI mint type "secret"
-    /// ABI mint params [{"name":"value","type":{"kind":"field"},"visibility":"public"},{"name":"owner","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}]},"visibility":"public"}]
-    /// ABI mint return []
+
     fn mint(
-        //*********************************/
-        // Should eventually be hidden:
-        inputs: pub Inputs,
-        //*********************************/
-
-        // amount: pub Field, 
-        // owner: pub Point,
+        amount: pub Field,
+        owner: pub Point,
     ) -> pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
-        //*********************************/
-        // Should eventually be hidden:
-        let amount = inputs.args[0];
-        let owner = Point::new(inputs.args[1], inputs.args[2]);
-
         let mut context = PrivateFunctionContext::new();
-        //*********************************/
+        context = context.push_args([amount, owner.x, owner.y]);
 
         let owner_balance = balances.at(owner.x);
         let note = Note::new(amount, owner);
 
         owner_balance.insert(context, note)
-            .finish(inputs)
+            .finish()
     }
-
-    /// ABI transfer type "secret"
-    /// ABI transfer params [{"name":"amount","type":{"kind":"field"},"visibility":"public"},{"name":"sender","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}},{"name":"recipient","type":{"kind":"struct","fields":[{"name":"x","type":{"kind":"field"}},{"name":"y","type":{"kind":"field"}}],"visibility":"public"}}]
-    /// ABI transfer return []
+    
     fn transfer(
-        //*********************************/
-        // Should eventually be hidden:
-        inputs: pub Inputs,
-        //*********************************/
-        // 
-        // amount: pub Field, 
-        // sender: pub Point, 
-        // recipient: pub Point
+        amount: pub Field,
+        sender: pub Point,
+        recipient: pub Point,
     ) -> pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
-        //*********************************/
-        // Should eventually be hidden:
-        let amount = inputs.args[0];
-        let sender = Point::new(inputs.args[1], inputs.args[2]);
-        let recipient = Point::new(inputs.args[3], inputs.args[4]);
-
-        let context1 = PrivateFunctionContext::new();
-        //*********************************/
+        let mut context = PrivateFunctionContext::new();
+        context = context.push_args([amount, sender.x, sender.y, recipient.x, recipient.y]);
 
         let sender_balance = balances.at(sender.x);
-        let (mut context, (note1, note2)) = sender_balance.get_2(inputs, context1);
+        let get_2_result = sender_balance.get_2(context);
+
+        context = get_2_result.0;
+        let (note1, note2) = get_2_result.1;
 
         // TODO: Removing this return breaks the circuit (???)
         context.return_values = context.return_values.push(note1.is_real as Field);
@@ -103,8 +64,8 @@ contract ZkToken {
         constrain sum as u64 >= amount as u64;
         let change_value = sum - amount;
 
-        context = sender_balance.remove(inputs, context, note1);
-        context = sender_balance.remove(inputs, context, note2);
+        context = sender_balance.remove(context, note1);
+        context = sender_balance.remove(context, note2);
 
         let change_note = Note::new(change_value, sender);
         let recipient_note = Note::new(amount, recipient);
@@ -114,7 +75,7 @@ contract ZkToken {
         context = recipient_balance.insert(context, recipient_note);
         context = sender_balance.insert(context, change_note);
 
-        context.finish(inputs)
+        context.finish()
     }
 
     /// ABI getBalance type "unconstrained"

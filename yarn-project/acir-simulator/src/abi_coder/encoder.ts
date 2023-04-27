@@ -3,6 +3,7 @@ import { Fr } from '@aztec/foundation';
 import { ABIType, FunctionAbi } from '@aztec/noir-contracts';
 
 // Simple encoder. It's missing support for integer and string
+
 class ArgumentEncoder {
   private flattened: Fr[] = [];
 

@@ -10,18 +10,6 @@ global PUBLIC_INPUTS_LENGTH : comptime Field = 47;
 
 use crate::types::vec::BoundedVec;
 
-// Inputs are expected to be provided to each contract function
-struct Inputs {
-    call_context : CallContext,
-
-    old_private_data_tree_root : Field,
-    old_nullifier_tree_root : Field,
-    old_contract_tree_root : Field,
-
-    contract_deployment_data: ContractDeploymentData,
-    args: [Field; MAX_ARGS],
-}
-
 struct CallContext {
     msg_sender : Field,
     storage_contract_address : Field,
@@ -33,6 +21,17 @@ struct CallContext {
 }
 
 impl CallContext {
+    fn deserialize(fields: [Field; 6]) -> Self {
+        CallContext {
+            msg_sender: fields[0],
+            storage_contract_address: fields[1],
+            portal_contract_address: fields[2],
+            is_delegate_call: fields[3] as bool,
+            is_static_call: fields[4] as bool,
+            is_contract_deployment: fields[5] as bool,
+        }
+    }
+
     fn serialize(self) -> [Field; 6] {
         [
             self.msg_sender,
@@ -53,6 +52,15 @@ struct ContractDeploymentData {
 }
 
 impl ContractDeploymentData {
+    fn deserialize(fields: [Field; 4]) -> Self{
+        ContractDeploymentData {
+            constructor_vk_hash: fields[0],
+            function_tree_root: fields[1],
+            contract_address_salt: fields[2],
+            portal_contract_address: fields[3],
+        }
+    }
+
     fn serialize(self) -> [Field; 4] {
         [
             self.constructor_vk_hash,

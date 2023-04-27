@@ -7,18 +7,7 @@ export type ACVMWitness = Map<number, ACVMField>;
 export const ZERO_ACVM_FIELD: ACVMField = `0x${'00'.repeat(Fr.SIZE_IN_BYTES)}`;
 export const ONE_ACVM_FIELD: ACVMField = `0x${'00'.repeat(Fr.SIZE_IN_BYTES - 1)}01`;
 
-export interface ACIRCallback {
-  getSecretKey(params: ACVMField[]): Promise<[ACVMField]>;
-  getNotes2(params: ACVMField[]): Promise<ACVMField[]>;
-  getRandomField(): Promise<[ACVMField]>;
-  notifyCreatedNote(params: ACVMField[]): Promise<[ACVMField]>;
-  notifyNullifiedNote(params: ACVMField[]): Promise<[ACVMField]>;
-  callPrivateFunction(params: ACVMField[]): Promise<ACVMField[]>;
-  storageRead(params: ACVMField[]): Promise<[ACVMField]>;
-  storageWrite(params: ACVMField[]): Promise<[ACVMField]>;
-  viewNotesPage(params: ACVMField[]): Promise<ACVMField[]>;
-}
-
+export type ACIRCallback = Record<string, (params: ACVMField[]) => Promise<ACVMField[]> >
 export interface ACIRExecutionResult {
   partialWitness: ACVMWitness;
 }
@@ -30,7 +19,7 @@ export const acvm: execute = async (acir, initialWitness, callback) => {
     acir,
     initialWitness,
     async (name: string, args: ACVMField[]) => {
-      if (!(name in callback)) throw new Error(`Callback ${name} not found`);
+      if (!(name in callback)) throw new Error(`Oracle ${name} not found`);
       const result = await callback[name as keyof ACIRCallback](args);
       return result;
     },
