@@ -20,7 +20,7 @@ contract ZkToken {
         //*********************************/
         initial_supply: pub Field, 
         owner: pub Point,
-    ) -> pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
         let mut context = PrivateFunctionContext::new();
         context.args = context.args.push_array([initial_supply, owner.x, owner.y]);
 
@@ -38,7 +38,7 @@ contract ZkToken {
         //*********************************/
         amount: pub Field, 
         owner: pub Point,
-    ) -> pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
         let mut context = PrivateFunctionContext::new();
         context.args = context.args.push_array([amount, owner.x, owner.y]);
 
@@ -57,7 +57,7 @@ contract ZkToken {
         amount: pub Field, 
         sender: pub Point, 
         recipient: pub Point,
-    ) -> pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
         let mut initialContext = PrivateFunctionContext::new();
         initialContext.args = initialContext.args.push_array([amount, sender.x, sender.y, recipient.x, recipient.y]);
 

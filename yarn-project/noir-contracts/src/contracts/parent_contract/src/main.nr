@@ -8,7 +8,7 @@ contract Parent {
     
     fn constructor(
         inputs: pub Inputs,
-    ) -> pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
         PrivateFunctionContext::new().finish(inputs)
     }
 
@@ -16,7 +16,7 @@ contract Parent {
         inputs: pub Inputs,
         targetContract: pub Field,
         targetSelector: pub Field,
-    ) -> pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
         let mut initialContext = PrivateFunctionContext::new();
         initialContext.args = initialContext.args.push_array([targetContract, targetSelector]);
 
