@@ -92,10 +92,10 @@ impl PrivateCallStackItem {
                 },
             },
         };
-        constrain contract_address == item.contract_address;
-        constrain function_selector == item.function_data.function_selector;
+        assert(contract_address == item.contract_address);
+        assert(function_selector == item.function_data.function_selector);
         for i in 0..crate::abi::MAX_ARGS {
-            constrain args[i] == item.public_inputs.args[i];
+            assert(args[i] == item.public_inputs.args[i]);
         }
 
         context.private_call_stack = context.private_call_stack.push(item.hash());

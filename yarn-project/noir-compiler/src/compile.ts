@@ -46,14 +46,30 @@ export class ContractCompiler {
   private convertToAztecABI(contract: NoirCompiledContract): ContractAbi {
     return {
       ...contract,
-      functions: contract.functions.map(noirFn => ({
-        name: noirFn.name,
-        functionType: noirFn.function_type.toLowerCase() as FunctionType,
-        parameters: noirFn.abi.parameters,
-        returnTypes: [noirFn.abi.return_type],
-        bytecode: Buffer.from(noirFn.bytecode).toString('hex'),
-        verificationKey: mockVerificationKey,
-      })),
+      functions: contract.functions.map(noirFn => {
+        const functionType = noirFn.function_type.toLowerCase() as FunctionType;
+
+        let parameters = noirFn.abi.parameters;
+        // If the function is not unconstrained, the first item is inputs or CallContext which we should omit
+        // This can be removed when we have oracles again, since we can load the Inputs or CallContext via oracle
+        if (functionType !== FunctionType.UNCONSTRAINED) parameters = parameters.slice(1);
+        // If the function is not secret, drop any padding from the end
+        if (functionType !== FunctionType.SECRET && parameters[parameters.length - 1].name.endsWith('padding'))
+          parameters = parameters.slice(0, parameters.length - 1);
+
+        let returnTypes = [noirFn.abi.return_type];
+        // If the function is secret, the return is the public inputs, which should be omitted
+        if (functionType === FunctionType.SECRET) returnTypes = [];
+
+        return {
+          name: noirFn.name,
+          functionType: functionType,
+          parameters,
+          returnTypes,
+          bytecode: Buffer.from(noirFn.bytecode).toString('hex'),
+          verificationKey: mockVerificationKey,
+        };
+      }),
     };
   }
 

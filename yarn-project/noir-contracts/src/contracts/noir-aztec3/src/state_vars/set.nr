@@ -69,7 +69,7 @@ impl Set {
 
         let note_hash = note.compute_note_hash();
 
-        constrain notify_created_note(storage_slot, note.owner, note) == 0;
+        assert(notify_created_note(storage_slot, note.owner, note) == 0);
         context.push_new_note_hash(note_hash)
     }
 
@@ -108,14 +108,14 @@ impl Set {
         //     if context.old_private_data_tree_root == 0 {
         //         context.old_private_data_tree_root = root;
         //     } else {
-        //         constrain context.old_private_data_tree_root == root;
+        //         assert(context.old_private_data_tree_root == root);
         //     }
         // };
         // process_data(note_getter_data.0, storage_slot, contract_address);
         // process_data(note_getter_data.1, storage_slot, contract_address);
 
-        constrain note_getter_data.0.root == inputs.old_private_data_tree_root;
-        constrain note_getter_data.1.root == inputs.old_private_data_tree_root;
+        assert(note_getter_data.0.root == inputs.old_private_data_tree_root);
+        assert(note_getter_data.1.root == inputs.old_private_data_tree_root);
 
         let notes = (note_getter_data.0.note, note_getter_data.1.note);
         (context, notes)
@@ -138,7 +138,7 @@ impl Set {
         // TODO remove this when we can specify hash index
         nullifier = note.compute_nullifier(note_hash);
 
-        constrain notify_nullified_note(storage_slot, nullifier, note) == 0;
+        assert(notify_nullified_note(storage_slot, nullifier, note) == 0);
         context.push_new_nullifier(nullifier)
     }
 }

@@ -24,7 +24,7 @@ const main = async () => {
 
       for (const contract of contracts) {
         const contractPath = nodePath.join(buildFolderPath, `aztec-${contract.name}.json`);
-        await fs.writeFile(contractPath, JSON.stringify(contract, null, 2));
+        await fs.writeFile(contractPath, JSON.stringify(contract, null, 2) + '\n');
       }
     });
 

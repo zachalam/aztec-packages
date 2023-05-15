@@ -1,11 +1,11 @@
 mod abi;
 mod context;
-mod notes;
-mod state_vars;
+// mod notes;
+// mod state_vars;
 mod types;
 mod utils;
-mod private_call_stack_item;
-mod public_call;
+// mod private_call_stack_item;
+// mod public_call;
 
 global Nonce = 1;
 global NoteHash = 2;
