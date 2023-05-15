@@ -1,11 +1,19 @@
 contract TestContract {
     use dep::test::module::foo;
 
-    fn constructor(param: Field, pub_param: pub Field) -> distinct pub [Field; 2] {
+    struct CallContext {
+        baz: Field,
+    }
+
+    struct Inputs {
+        context: CallContext,
+    }
+
+    fn constructor(_inputs: Inputs, param: Field, pub_param: pub Field) -> pub [Field; 2] {
         [foo::bar(param), param + pub_param]
     }
 
-    open fn openFunction() -> pub Field {
+    open fn openFunction(_context: CallContext, _padding: [Field; 8]) -> pub Field {
         42
     }
 
