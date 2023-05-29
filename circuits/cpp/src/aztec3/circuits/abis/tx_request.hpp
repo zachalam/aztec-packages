@@ -28,10 +28,15 @@ template <typename NCT> struct TxRequest {
     TxContext<NCT> tx_context{};
     fr chain_id = 0;
 
+    // Temporary flag to identify account abstraction flows.
+    // Should be removed in https://github.com/AztecProtocol/aztec-packages/issues/664.
+    boolean use_aa;
+
     boolean operator==(TxContext<NCT> const& other) const
     {
         return from == other.from && to == other.to && function_data == other.function_data && args == other.args &&
-               nonce == other.nonce && tx_context == other.tx_context && chain_id == other.chain_id;
+               nonce == other.nonce && tx_context == other.tx_context && chain_id == other.chain_id &&
+               use_aa == other.use_aa;
     };
 
     template <typename Composer> TxRequest<CircuitTypes<Composer>> to_circuit_type(Composer& composer) const
@@ -42,11 +47,9 @@ template <typename NCT> struct TxRequest {
         auto to_ct = [&](auto& e) { return aztec3::utils::types::to_ct(composer, e); };
         auto to_circuit_type = [&](auto& e) { return e.to_circuit_type(composer); };
 
-        TxRequest<CircuitTypes<Composer>> tx_request = {
-            to_ct(from),     to_ct(to),    to_circuit_type(function_data),
-            to_ct(args),     to_ct(nonce), to_circuit_type(tx_context),
-            to_ct(chain_id),
-        };
+        TxRequest<CircuitTypes<Composer>> tx_request = { to_ct(from),     to_ct(to),    to_circuit_type(function_data),
+                                                         to_ct(args),     to_ct(nonce), to_circuit_type(tx_context),
+                                                         to_ct(chain_id), to_ct(use_aa) };
 
         return tx_request;
     };
@@ -61,6 +64,7 @@ template <typename NCT> struct TxRequest {
         inputs.push_back(nonce);
         inputs.push_back(tx_context.hash());
         inputs.push_back(chain_id);
+        inputs.push_back(use_aa);
 
         return NCT::compress(inputs, GeneratorIndex::TX_REQUEST);
     }
@@ -82,6 +86,7 @@ template <typename NCT> void read(uint8_t const*& it, TxRequest<NCT>& tx_request
     read(it, tx_request.nonce);
     read(it, tx_request.tx_context);
     read(it, tx_request.chain_id);
+    read(it, tx_request.use_aa);
 };
 
 template <typename NCT> void write(std::vector<uint8_t>& buf, TxRequest<NCT> const& tx_request)
@@ -95,6 +100,7 @@ template <typename NCT> void write(std::vector<uint8_t>& buf, TxRequest<NCT> con
     write(buf, tx_request.nonce);
     write(buf, tx_request.tx_context);
     write(buf, tx_request.chain_id);
+    write(buf, tx_request.use_aa);
 };
 
 template <typename NCT> std::ostream& operator<<(std::ostream& os, TxRequest<NCT> const& tx_request)
@@ -105,7 +111,8 @@ template <typename NCT> std::ostream& operator<<(std::ostream& os, TxRequest<NCT
               << "args: " << tx_request.args << "\n"
               << "nonce: " << tx_request.nonce << "\n"
               << "tx_context: " << tx_request.tx_context << "\n"
-              << "chain_id: " << tx_request.chain_id << "\n";
+              << "chain_id: " << tx_request.chain_id << "\n"
+              << "use_aa: " << tx_request.use_aa << "\n";
 }
 
 }  // namespace aztec3::circuits::abis

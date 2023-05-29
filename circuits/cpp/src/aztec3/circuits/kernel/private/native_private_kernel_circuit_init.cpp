@@ -76,10 +76,19 @@ void validate_this_private_call_against_tx_request(DummyComposer& composer,
     const auto tx_request_args_hash = NT::compress<ARGS_LENGTH>(tx_request.args, FUNCTION_ARGS);
     const auto call_args_hash = NT::compress<ARGS_LENGTH>(call_stack_item.public_inputs.args, FUNCTION_ARGS);
 
-    composer.do_assert(
-        tx_request.to == call_stack_item.contract_address,
-        "user's intent does not match initial private call (tx_request.to must match call_stack_item.contract_address)",
-        CircuitErrorCode::PRIVATE_KERNEL__USER_INTENT_MISMATCH_BETWEEN_TX_REQUEST_AND_CALL_STACK_ITEM);
+    if (tx_request.use_aa) {
+        composer.do_assert(
+            tx_request.from == call_stack_item.contract_address,
+            "tx sender does not match initial private call contract (tx_request.from must match "
+            "call_stack_item.contract_address)",
+            CircuitErrorCode::PRIVATE_KERNEL__USER_INTENT_MISMATCH_BETWEEN_TX_REQUEST_AND_CALL_STACK_ITEM);
+    } else {
+        composer.do_assert(
+            tx_request.to == call_stack_item.contract_address,
+            "user's intent does not match initial private call (tx_request.to must match "
+            "call_stack_item.contract_address)",
+            CircuitErrorCode::PRIVATE_KERNEL__USER_INTENT_MISMATCH_BETWEEN_TX_REQUEST_AND_CALL_STACK_ITEM);
+    }
 
     composer.do_assert(tx_request.function_data.hash() == call_stack_item.function_data.hash(),
                        "user's intent does not match initial private call (tx_request.function_data must match "
@@ -99,6 +108,13 @@ void validate_inputs(DummyComposer& composer, PrivateKernelInputsInit<NT> const&
     composer.do_assert(this_call_stack_item.function_data.is_private == true,
                        "Cannot execute a non-private function with the private kernel circuit",
                        CircuitErrorCode::PRIVATE_KERNEL__NON_PRIVATE_FUNCTION_EXECUTED_WITH_PRIVATE_KERNEL);
+
+    if (private_inputs.signed_tx_request.tx_request.use_aa) {
+        composer.do_assert(
+            private_inputs.private_call.call_stack_item.public_inputs.call_context.msg_sender.to_field().is_zero(),
+            "msg sender must be zero in initial call",
+            CircuitErrorCode::PRIVATE_KERNEL__MSG_SENDER_NON_ZERO_IN_INITIAL_CALL);
+    }
 
     // TODO: change to allow 3 initial calls on the private call stack, so a fee can be paid and a gas
     // rebate can be paid.
@@ -139,7 +155,9 @@ void update_end_values(PrivateKernelInputsInit<NT> const& private_inputs, Kernel
     // DANGER: This is terrible. This should not be part of the protocol. This is an intentional bodge to reach a
     // milestone. This must not be the way we derive nonce nullifiers in production. It can be front-run by other
     // users. It is not domain separated. Naughty.
-    array_push(public_inputs.end.new_nullifiers, private_inputs.signed_tx_request.tx_request.nonce);
+    if (!private_inputs.signed_tx_request.tx_request.use_aa) {
+        array_push(public_inputs.end.new_nullifiers, private_inputs.signed_tx_request.tx_request.nonce);
+    }
 }
 
 // NOTE: THIS IS A VERY UNFINISHED WORK IN PROGRESS.

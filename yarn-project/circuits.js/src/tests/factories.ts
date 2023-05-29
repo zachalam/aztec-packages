@@ -550,6 +550,7 @@ export function makeTxRequest(seed = 1): TxRequest {
     nonce: fr(seed + 0x300),
     txContext: makeTxContext(seed + 0x400),
     chainId: fr(seed + 0x500),
+    useAA: false,
   });
 }
 

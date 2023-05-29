@@ -84,10 +84,15 @@ export class TxRequest {
      * Chain ID of the transaction. Here for replay protection.
      */
     public chainId: Fr,
+    /**
+     * Temporary flag to identify account abstraction flows.
+     */
+    public useAA = false,
   ) {
     assertMemberLength(this, 'args', ARGS_LENGTH);
   }
 
+  // Remove in favor of https://github.com/AztecProtocol/aztec-packages/issues/681
   setPackedArg(index: number, unpackedArgs: Fr[]) {
     // TODO: What hash flavor to use here? Who'll need to validate it?
     const hashed = Fr.fromBuffer(keccak224(Buffer.concat(unpackedArgs.map(fr => fr.toBuffer()))));
@@ -95,6 +100,7 @@ export class TxRequest {
     this.packedArgs.set(index, unpackedArgs);
   }
 
+  // Remove in favor of https://github.com/AztecProtocol/aztec-packages/issues/681
   getExpandedArgs(): Fr[] {
     const args = [];
     for (let i = 0; i < this.args.length; i++) {
@@ -116,6 +122,7 @@ export class TxRequest {
       fields.nonce,
       fields.txContext,
       fields.chainId,
+      fields.useAA,
     ] as const;
   }
 
@@ -147,6 +154,7 @@ export class TxRequest {
       reader.readFr(),
       reader.readObject(TxContext),
       reader.readFr(),
+      reader.readBoolean(),
     );
   }
 }
