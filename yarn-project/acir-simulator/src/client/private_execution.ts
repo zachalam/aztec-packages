@@ -6,6 +6,8 @@ import {
   ZERO_ACVM_FIELD,
   toAcvmCallPrivateStackItem,
   toACVMWitness,
+  toACVMCallContext,
+  toACVMContractDeploymentData,
 } from '../acvm/index.js';
 import { CallContext, PrivateCallStackItem, FunctionData } from '@aztec/circuits.js';
 import { extractPublicInputs, frToAztecAddress, frToSelector } from '../acvm/deserialize.js';
@@ -180,8 +182,6 @@ export class PrivateFunctionExecution {
     };
   }
 
-  // We still need this function until we can get user-defined ordering of structs for fn arguments
-  // TODO When that is sorted out on noir side, we can use instead the utilities in serialize.ts
   /**
    * Writes the function inputs to the initial witness.
    * @returns The initial witness.
@@ -189,30 +189,18 @@ export class PrivateFunctionExecution {
   private writeInputs() {
     const argsSize = this.abi.parameters.reduce((acc, param) => acc + sizeOfType(param.type), 0);
 
-    // NOTE: PSA to anyone updating this code: within the structs, the members must be in alphabetical order, this
-    // is a current quirk in noir struct encoding, feel free to remove this note when this changes
-    const fields = [
-      this.callContext.isContractDeployment,
-      this.callContext.isDelegateCall,
-      this.callContext.isStaticCall,
-      this.callContext.msgSender,
-      this.callContext.portalContractAddress,
-      this.callContext.storageContractAddress,
+    return toACVMWitness(1, [
+      ...toACVMCallContext(this.callContext),
 
-      this.context.request.txContext.contractDeploymentData.constructorVkHash,
-      this.context.request.txContext.contractDeploymentData.contractAddressSalt,
-      this.context.request.txContext.contractDeploymentData.functionTreeRoot,
-      this.context.request.txContext.contractDeploymentData.portalContractAddress,
+      toACVMField(this.context.historicRoots.privateDataTreeRoot),
+      toACVMField(this.context.historicRoots.nullifierTreeRoot),
+      toACVMField(this.context.historicRoots.contractTreeRoot),
+      toACVMField(this.context.historicRoots.l1ToL2MessagesTreeRoot),
 
-      this.context.historicRoots.contractTreeRoot,
-      this.context.historicRoots.l1ToL2MessagesTreeRoot,
-      this.context.historicRoots.nullifierTreeRoot,
-      this.context.historicRoots.privateDataTreeRoot,
+      ...toACVMContractDeploymentData(this.context.request.txContext.contractDeploymentData),
 
-      ...this.args.slice(0, argsSize),
-    ];
-
-    return toACVMWitness(1, fields);
+      ...this.args.slice(0, argsSize).map(toACVMField),
+    ]);
   }
 
   /**

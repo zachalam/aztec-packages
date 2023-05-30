@@ -40,7 +40,7 @@ export class UnconstrainedFunctionExecution {
     );
 
     const acir = Buffer.from(this.abi.bytecode, 'hex');
-    const initialWitness = toACVMWitness(1, this.args);
+    const initialWitness = toACVMWitness(1, this.args.map(toACVMField));
 
     const partialWitness = await acvm(acir, initialWitness, {
       getSecretKey: async ([address]: ACVMField[]) => [

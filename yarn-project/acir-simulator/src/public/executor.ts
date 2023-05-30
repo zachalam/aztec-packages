@@ -138,13 +138,16 @@ export class PublicExecutor {
  * @returns The initial witness.
  */
 function getInitialWitness(args: Fr[], callContext: CallContext, witnessStartIndex = 1) {
-  return toACVMWitness(witnessStartIndex, [
-    callContext.isContractDeployment,
-    callContext.isDelegateCall,
-    callContext.isStaticCall,
-    callContext.msgSender,
-    callContext.portalContractAddress,
-    callContext.storageContractAddress,
-    ...args,
-  ]);
+  return toACVMWitness(
+    witnessStartIndex,
+    [
+      callContext.isContractDeployment,
+      callContext.isDelegateCall,
+      callContext.isStaticCall,
+      callContext.msgSender,
+      callContext.portalContractAddress,
+      callContext.storageContractAddress,
+      ...args,
+    ].map(toACVMField),
+  );
 }

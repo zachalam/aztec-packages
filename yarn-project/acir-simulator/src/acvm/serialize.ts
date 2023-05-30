@@ -33,12 +33,12 @@ export function toACVMFunctionData(functionData: FunctionData): ACVMField[] {
  */
 export function toACVMCallContext(callContext: CallContext): ACVMField[] {
   return [
-    toACVMField(callContext.isContractDeployment),
+    toACVMField(callContext.msgSender),
+    toACVMField(callContext.storageContractAddress),
+    toACVMField(callContext.portalContractAddress),
     toACVMField(callContext.isDelegateCall),
     toACVMField(callContext.isStaticCall),
-    toACVMField(callContext.msgSender),
-    toACVMField(callContext.portalContractAddress),
-    toACVMField(callContext.storageContractAddress),
+    toACVMField(callContext.isContractDeployment),
   ];
 }
 
@@ -120,9 +120,9 @@ export function toAcvmNoteLoadOracleInputs(
  * @param fields - The fields to insert.
  * @returns The witness.
  */
-export function toACVMWitness(witnessStartIndex: number, fields: Parameters<typeof toACVMField>[0][]) {
+export function toACVMWitness(witnessStartIndex: number, fields: ACVMField[]) {
   return fields.reduce((witness, field, index) => {
-    witness.set(index + witnessStartIndex, toACVMField(field));
+    witness.set(index + witnessStartIndex, field);
     return witness;
   }, new Map<number, ACVMField>());
 }
