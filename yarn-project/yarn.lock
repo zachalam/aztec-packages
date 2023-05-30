@@ -382,7 +382,7 @@ __metadata:
     "@aztec/foundation": "workspace:^"
     "@jest/globals": ^29.5.0
     "@noir-lang/noir-source-resolver": 1.1.1
-    "@noir-lang/noir_wasm": 0.5.1-9740f54
+    "@noir-lang/noir_wasm": 0.6.0-50fcb3c
     "@rushstack/eslint-patch": ^1.1.4
     "@types/fs-extra": ^11.0.1
     "@types/jest": ^29.5.0
@@ -1638,12 +1638,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noir-lang/noir_wasm@npm:0.5.1-9740f54":
-  version: 0.5.1-9740f54
-  resolution: "@noir-lang/noir_wasm@npm:0.5.1-9740f54"
+"@noir-lang/noir_wasm@npm:0.6.0-50fcb3c":
+  version: 0.6.0-50fcb3c
+  resolution: "@noir-lang/noir_wasm@npm:0.6.0-50fcb3c"
   peerDependencies:
     "@noir-lang/noir-source-resolver": 1.1.2
-  checksum: c4b20840cba8bd844153e88c6324aa1f32331c838030734b1cbe6563e6b4f8e24a3ef0cc3d00a68812b457c9d079c0ece2a87adff3c0d8d4bf819e06cbed398e
+  checksum: 9cb2294a86af2d1f11ce33986c884e6fe9963ce4d2301dcd665f0b407dcc619dd6ccf87d2bd560697868c8e09dcfbc9a38292d9bd62f737cbcd0b8fd1a14f49b
   languageName: node
   linkType: hard
 

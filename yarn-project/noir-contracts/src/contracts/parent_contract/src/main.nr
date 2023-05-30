@@ -2,14 +2,14 @@ contract Parent {
     use dep::aztec3::abi;
     use dep::aztec3::abi::Inputs;
     use dep::aztec3::abi::CallContext;
-    use dep::aztec3::context::PrivateFunctionContext;
+    use dep::aztec3::context::private::PrivateFunctionContext;
     use dep::aztec3::public_call;
     use dep::aztec3::private_call_stack_item::PrivateCallStackItem;
     
     fn constructor(
         inputs: pub Inputs,
     ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
-        PrivateFunctionContext::new().finish(inputs)
+        PrivateFunctionContext::new(inputs).finish()
     }
 
     fn entryPoint(
@@ -17,7 +17,7 @@ contract Parent {
         targetContract: pub Field,
         targetSelector: pub Field,
     ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
-        let mut initialContext = PrivateFunctionContext::new();
+        let mut initialContext = PrivateFunctionContext::new(inputs);
         initialContext.args = initialContext.args.push_array([targetContract, targetSelector]);
 
         let (callStackItem, mut context) = PrivateCallStackItem::call(targetContract, targetSelector, [0; dep::aztec3::abi::MAX_ARGS], initialContext);
@@ -26,7 +26,7 @@ contract Parent {
 
         context.return_values = context.return_values.push(result);
 
-        context.finish(inputs)
+        context.finish()
     }
 
     open fn pubEntryPoint(_call_context: CallContext, targetContract: Field, targetSelector: Field, initValue: Field, _padding: [Field; dep::aztec3::abi::MAX_ARGS - 3]) -> pub Field {

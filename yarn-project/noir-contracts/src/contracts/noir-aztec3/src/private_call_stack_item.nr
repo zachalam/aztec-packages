@@ -1,6 +1,6 @@
 use crate::abi::CallContext;
 use crate::abi::ContractDeploymentData;
-use crate::context::PrivateFunctionContext;
+use crate::context::private::PrivateFunctionContext;
 use crate::abi::PrivateCircuitPublicInputs;
 use crate::types::vec::BoundedVec;
 use crate::utils::arr_copy_slice;
