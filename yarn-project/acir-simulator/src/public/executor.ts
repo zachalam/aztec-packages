@@ -40,7 +40,7 @@ export class PublicExecutor {
 
     const notAvailable = () => Promise.reject(`Built-in not available for public execution simulation`);
 
-    const { partialWitness } = await acvm(acir, initialWitness, {
+    const partialWitness = await acvm(acir, initialWitness, {
       getSecretKey: notAvailable,
       getNotes2: notAvailable,
       getRandomField: notAvailable,

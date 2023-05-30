@@ -1,7 +1,7 @@
 import { AztecAddress } from '@aztec/foundation/aztec-address';
 import { EthAddress } from '@aztec/foundation/eth-address';
 import { Fr } from '@aztec/foundation/fields';
-import { solve_intermediate_witness as solveIntermediateWitness } from '@noir-lang/aztec_backend_wasm';
+import { WitnessMap, executeCircuit } from '@noir-lang/acvm-simulator';
 
 /**
  * The format for fields on the ACVM.
@@ -32,31 +32,17 @@ export interface ACIRCallback {
 }
 
 /**
- * The result of executing an ACIR.
- */
-export interface ACIRExecutionResult {
-  /**
-   * The partial witness of the execution.
-   */
-  partialWitness: ACVMWitness;
-}
-
-/**
  * The function call that executes an ACIR.
  */
-export type execute = (acir: Buffer, initialWitness: ACVMWitness, oracle: ACIRCallback) => Promise<ACIRExecutionResult>;
+export type execute = (acir: Buffer, initialWitness: ACVMWitness, oracle: ACIRCallback) => Promise<ACVMWitness>;
 
 export const acvm: execute = async (acir, initialWitness, callback) => {
-  const partialWitness = await solveIntermediateWitness(
-    acir,
-    initialWitness,
-    async (name: string, args: ACVMField[]) => {
-      if (!(name in callback)) throw new Error(`Callback ${name} not found`);
-      const result = await callback[name as keyof ACIRCallback](args);
-      return result;
-    },
-  );
-  return Promise.resolve({ partialWitness });
+  const partialWitness = await executeCircuit(acir, initialWitness, async (name: string, inputs: string[]) => {
+    if (!(name in callback)) throw new Error(`Callback ${name} not found`);
+    const result = await callback[name as keyof ACIRCallback](inputs as ACVMField[]);
+    return result;
+  });
+  return partialWitness as ACVMWitness;
 };
 
 /**

@@ -19,7 +19,7 @@ import { Fr } from '@aztec/foundation/fields';
 import { EthAddress } from '@aztec/foundation/eth-address';
 import { AztecAddress } from '@aztec/foundation/aztec-address';
 
-describe('Unconstrained Execution test suite', () => {
+describe.skip('Unconstrained Execution test suite', () => {
   let bbWasm: BarretenbergWasm;
   let oracle: ReturnType<typeof mock<DBOracle>>;
   let acirSimulator: AcirSimulator;

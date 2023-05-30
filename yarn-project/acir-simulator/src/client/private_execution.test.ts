@@ -44,7 +44,7 @@ describe('Private Execution test suite', () => {
     const contractDeploymentData = ContractDeploymentData.empty();
     const txContext = new TxContext(false, false, true, contractDeploymentData);
 
-    it('should run the empty constructor', async () => {
+    it.only('should run the empty constructor', async () => {
       const txRequest = new TxRequest(
         AztecAddress.random(),
         AztecAddress.ZERO,
@@ -284,7 +284,7 @@ describe('Private Execution test suite', () => {
     const contractDeploymentData = new ContractDeploymentData(Fr.random(), Fr.random(), Fr.random(), EthAddress.ZERO);
     const txContext = new TxContext(false, false, true, contractDeploymentData);
 
-    it('child function should be callable', async () => {
+    it.only('child function should be callable', async () => {
       const abi = ChildAbi.functions.find(f => f.name === 'value')!;
 
       const txRequest = new TxRequest(

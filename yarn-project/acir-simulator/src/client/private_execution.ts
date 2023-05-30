@@ -117,7 +117,7 @@ export class PrivateFunctionExecution {
     const newNullifiers: NewNullifierData[] = [];
     const nestedExecutionContexts: ExecutionResult[] = [];
 
-    const { partialWitness } = await acvm(acir, initialWitness, {
+    const partialWitness = await acvm(acir, initialWitness, {
       getSecretKey: async ([address]: ACVMField[]) => [
         toACVMField(await this.context.db.getSecretKey(this.contractAddress, frToAztecAddress(fromACVMField(address)))),
       ],

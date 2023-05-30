@@ -33,7 +33,7 @@ __metadata:
     "@aztec/noir-contracts": "workspace:^"
     "@aztec/types": "workspace:^"
     "@jest/globals": ^29.5.0
-    "@noir-lang/aztec_backend_wasm": "github:joss-aztec/barretenberg_browser_stopgap_wasm_build#f2e10698dfa11cd46f7373cec1ed6184b0505f1e"
+    "@noir-lang/acvm-simulator": "github:noir-lang/acvm-simulator-wasm#2ba6bf267ed59bae9f60c062f06ebf083fa0c5a6"
     "@noir-lang/noir_util_wasm": "github:joss-aztec/noir_util_wasm#7dc410f4b4c00b9cfa9e726ae7fca3a3a4a237c5"
     "@rushstack/eslint-patch": ^1.1.4
     "@types/jest": ^29.5.0
@@ -1617,10 +1617,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noir-lang/aztec_backend_wasm@github:joss-aztec/barretenberg_browser_stopgap_wasm_build#f2e10698dfa11cd46f7373cec1ed6184b0505f1e":
-  version: 0.1.0-06f13cf
-  resolution: "@noir-lang/aztec_backend_wasm@https://github.com/joss-aztec/barretenberg_browser_stopgap_wasm_build.git#commit=f2e10698dfa11cd46f7373cec1ed6184b0505f1e"
-  checksum: 570b43f4a222e04b580514c5a7536eeccd83154d69a6a452e7d9248b8e8deac1f8eea3edb6dba566480576d61aee19a12687c1b52ba639af372af2fbaebc5c3e
+"@noir-lang/acvm-simulator@github:noir-lang/acvm-simulator-wasm#2ba6bf267ed59bae9f60c062f06ebf083fa0c5a6":
+  version: 0.0.0-b24461c
+  resolution: "@noir-lang/acvm-simulator@https://github.com/noir-lang/acvm-simulator-wasm.git#commit=2ba6bf267ed59bae9f60c062f06ebf083fa0c5a6"
+  checksum: 7d817eb11f224dc6945b8c5c9fdd1c688270c72c86480d21e4cab3a564ea8ee6a99e8930310a612b97d16db56a4c66c50793ac6d17af74c987fa5fbf6cd51e51
   languageName: node
   linkType: hard
 

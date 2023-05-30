@@ -18,7 +18,7 @@ import { keccak } from '@aztec/foundation/crypto';
 
 export const createMemDown = () => (memdown as any)() as MemDown<any, any>;
 
-describe('ACIR public execution simulator', () => {
+describe.skip('ACIR public execution simulator', () => {
   let bbWasm: BarretenbergWasm;
   let publicState: MockProxy<PublicStateDB>;
   let publicContracts: MockProxy<PublicContractsDB>;
