@@ -1,6 +1,7 @@
 contract ZkToken {
     mod balance_utils;
     use dep::aztec3::abi::Inputs;
+    use dep::aztec3::abi::PrivateCircuitPublicInputs;
     use dep::aztec3::context::private::PrivateFunctionContext;
     use dep::aztec3::notes::value_note::Note;
     use dep::aztec3::types::point::Point;
@@ -20,7 +21,7 @@ contract ZkToken {
         //*********************************/
         initial_supply: pub Field, 
         owner: pub Point,
-    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub PrivateCircuitPublicInputs {
         let mut context = PrivateFunctionContext::new(inputs);
         context.args = context.args.push_array([initial_supply, owner.x, owner.y]);
 
@@ -38,7 +39,7 @@ contract ZkToken {
         //*********************************/
         amount: pub Field, 
         owner: pub Point,
-    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub PrivateCircuitPublicInputs {
         let mut context = PrivateFunctionContext::new(inputs);
         context.args = context.args.push_array([amount, owner.x, owner.y]);
 
@@ -57,7 +58,7 @@ contract ZkToken {
         amount: pub Field, 
         sender: pub Point, 
         recipient: pub Point,
-    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub PrivateCircuitPublicInputs {
         let mut initialContext = PrivateFunctionContext::new(inputs);
         initialContext.args = initialContext.args.push_array([amount, sender.x, sender.y, recipient.x, recipient.y]);
 

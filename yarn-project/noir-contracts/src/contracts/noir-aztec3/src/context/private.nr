@@ -34,8 +34,8 @@ impl PrivateFunctionContext {
     }
 
     // When noir uses user-defined serialization of fields, we can return public inputs instead
-    fn finish(self) -> [Field; abi::PUBLIC_INPUTS_LENGTH] {
-        let priv_circuit_pub_inputs = abi::PrivateCircuitPublicInputs {
+    fn finish(self) -> abi::PrivateCircuitPublicInputs {
+        abi::PrivateCircuitPublicInputs {
             call_context: self.inputs.call_context,
             args: self.args.storage,
             return_values: self.return_values.storage,
@@ -50,8 +50,7 @@ impl PrivateFunctionContext {
             historic_contract_tree_root: self.inputs.old_contract_tree_root,
             historic_l1_to_l2_messages_tree_root: self.inputs.old_l1_to_l2_messages_tree_root,
             contract_deployment_data: self.inputs.contract_deployment_data,
-        };
-        priv_circuit_pub_inputs.serialize()
+        }
     }
 
     fn push_new_note_hash(mut self: Self, note_hash: Field) -> Self {

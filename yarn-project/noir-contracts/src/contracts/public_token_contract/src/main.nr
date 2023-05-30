@@ -1,5 +1,6 @@
 contract PublicToken {
     use dep::aztec3::abi::Inputs;
+    use dep::aztec3::abi::PrivateCircuitPublicInputs;
     use dep::aztec3::context::private::PrivateFunctionContext;
     use dep::aztec3::abi::CallContext;
     use dep::aztec3::types::point::Point;
@@ -10,7 +11,7 @@ contract PublicToken {
 
     fn constructor(
         inputs: pub Inputs,
-    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub PrivateCircuitPublicInputs {
         PrivateFunctionContext::new(inputs).finish()
     }
 

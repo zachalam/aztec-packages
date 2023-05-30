@@ -2,13 +2,14 @@ contract Parent {
     use dep::aztec3::abi;
     use dep::aztec3::abi::Inputs;
     use dep::aztec3::abi::CallContext;
+    use dep::aztec3::abi::PrivateCircuitPublicInputs;
     use dep::aztec3::context::private::PrivateFunctionContext;
     use dep::aztec3::public_call;
     use dep::aztec3::private_call_stack_item::PrivateCallStackItem;
     
     fn constructor(
         inputs: pub Inputs,
-    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub PrivateCircuitPublicInputs {
         PrivateFunctionContext::new(inputs).finish()
     }
 
@@ -16,7 +17,7 @@ contract Parent {
         inputs: pub Inputs,
         targetContract: pub Field,
         targetSelector: pub Field,
-    ) -> distinct pub [Field; dep::aztec3::abi::PUBLIC_INPUTS_LENGTH] {
+    ) -> distinct pub PrivateCircuitPublicInputs {
         let mut initialContext = PrivateFunctionContext::new(inputs);
         initialContext.args = initialContext.args.push_array([targetContract, targetSelector]);
 
