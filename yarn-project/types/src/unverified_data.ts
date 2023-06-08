@@ -18,11 +18,11 @@ export class UnverifiedData {
    */
   public toBuffer(): Buffer {
     // Serialize each buffer into the new buffer with prefix
-    const serializedChunks = this.dataChunks.map(buffer => serializeBufferToVector(buffer));
+    const serializedChunks = Buffer.concat(this.dataChunks.map(buffer => serializeBufferToVector(buffer)));
     // Concatenate all serialized chunks into a single buffer
-    const serializedBuffer = Buffer.concat(serializedChunks);
-
-    return serializedBuffer;
+    const lengthBuf = Buffer.alloc(4, 0);
+    lengthBuf.writeUInt32BE(serializedChunks.length, 0);
+    return Buffer.concat([lengthBuf, serializedChunks]);
   }
 
   /**
@@ -50,8 +50,8 @@ export class UnverifiedData {
    */
   public static fromBuffer(buf: Buffer | BufferReader): UnverifiedData {
     const reader = BufferReader.asReader(buf);
-
-    const chunks = reader.readBufferArray();
+    const length = reader.readNumber();
+    const chunks = reader.readBufferArray(length);
     return new UnverifiedData(chunks);
   }
 

@@ -10,7 +10,7 @@ export * from './deploy_l1_contracts.js';
  * @param rpcUrl - The rpc url of the chain or a chain identifer (e.g. 'testnet')
  * @param apiKey - An optional apikey for the chain client.
  */
-export function createEthereumChain(rpcUrl: string, apiKey?: string) {
+export function createEthereumChain(rpcUrl: string, apiKey?: string): EthereumChain {
   if (rpcUrl === 'testnet') {
     if (apiKey === undefined || apiKey === '') {
       throw new Error('API Key must be provided for aztec testnet');
@@ -20,5 +20,5 @@ export function createEthereumChain(rpcUrl: string, apiKey?: string) {
   return {
     chainInfo: foundry,
     rpcUrl,
-  } as EthereumChain;
+  };
 }

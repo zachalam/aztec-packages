@@ -228,3 +228,24 @@ export function toFriendlyJSON(obj: object): string {
     2,
   );
 }
+
+/**
+ *  A wrapper class to handle serialisation/deserialisation of potentially undefined bufferable objects.
+ */
+export class Optional<T extends Bufferable> {
+  constructor(private obj?: T) {}
+
+  /**
+   * Optionally serialises the object based on whether it is defined or not.
+   * @returns The serialised data as a buffer.
+   */
+  toBuffer() {
+    if (this.obj === undefined) {
+      return Buffer.alloc(1, 0);
+    }
+    if (Array.isArray(this.obj)) {
+      return Buffer.concat([Buffer.alloc(1, 1), serializeBufferArrayToVector(serializeToBufferArray(this.obj))]);
+    }
+    return Buffer.concat([Buffer.alloc(1, 1), serializeToBuffer([this.obj])]);
+  }
+}

@@ -11,7 +11,7 @@ export class KnownTxLookup {
   /**
    * Inform this lookup that a peer has 'seen' a transaction.
    * @param peerId - The peerId of the peer that has 'seen' the transaction.
-   * @param txHash - The thHash of the 'seen' transaction.
+   * @param txHash - The txHash of the 'seen' transaction.
    */
   public addPeerForTx(peerId: PeerId, txHash: string) {
     const peerIdAsString = peerId.toString();
@@ -28,7 +28,7 @@ export class KnownTxLookup {
   /**
    * Determine if a peer has 'seen' a transaction.
    * @param peerId - The peerId of the peer.
-   * @param txHash - The thHash of the transaction.
+   * @param txHash - The txHash of the transaction.
    * @returns A boolean indicating if the transaction has been 'seen' by the peer.
    */
   public hasPeerSeenTx(peerId: PeerId, txHash: string) {

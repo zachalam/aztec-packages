@@ -1,7 +1,7 @@
 import { Chain } from 'viem';
 import { EthereumChain } from './ethereum_chain.js';
 
-export const createTestnetChain = (apiKey: string) => {
+export const createTestnetChain = (apiKey: string): EthereumChain => {
   const chain: Chain = {
     id: 677868,
     name: 'testnet',
@@ -23,5 +23,5 @@ export const createTestnetChain = (apiKey: string) => {
   return {
     chainInfo: chain,
     rpcUrl: chain.rpcUrls.default.http[0],
-  } as EthereumChain;
+  };
 };

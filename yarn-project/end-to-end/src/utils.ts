@@ -1,4 +1,4 @@
-import { AztecNodeConfig, AztecNodeService, getConfigEnvVars } from '@aztec/aztec-node';
+import { AztecNode, AztecNodeConfig, AztecNodeService, getConfigEnvVars } from '@aztec/aztec-node';
 import { DebugLogger, createDebugLogger } from '@aztec/foundation/log';
 
 import { DeployL1Contracts, deployL1Contract, deployL1Contracts } from '@aztec/ethereum';

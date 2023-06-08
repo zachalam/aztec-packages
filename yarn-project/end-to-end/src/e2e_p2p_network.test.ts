@@ -12,6 +12,7 @@ import { TestContractAbi } from '@aztec/noir-contracts/examples';
 import { BootstrapNode, P2PConfig, createLibP2PPeerId, exportLibP2PPeerIdToString } from '@aztec/p2p';
 
 import { setup } from './utils.js';
+import { MerkleTreeId } from '@aztec/types';
 
 const NUM_NODES = 4;
 const NUM_TXS_PER_BLOCK = 4;
@@ -26,23 +27,33 @@ interface NodeContext {
 }
 
 describe('e2e_p2p_network', () => {
-  let aztecNode: AztecNodeService;
-  let aztecRpcServer: AztecRPCServer;
+  let bootstrapNode: BootstrapNode | undefined = undefined;
+  let contexts: NodeContext[] = [];
   let config: AztecNodeConfig;
   let logger: DebugLogger;
 
   beforeEach(async () => {
+    let aztecNode: AztecNodeService | undefined = undefined;
+    let aztecRpcServer: AztecRPCServer | undefined = undefined;
     ({ aztecNode, aztecRpcServer, config, logger } = await setup());
+    await aztecNode.stop();
+    await aztecRpcServer.stop();
   }, 30_000);
 
   afterEach(async () => {
-    await aztecNode.stop();
-    await aztecRpcServer.stop();
+    // shutdown all nodes.
+    for (const context of contexts) {
+      await context.node.stop();
+      await context.rpcServer.stop();
+    }
+    await bootstrapNode?.stop();
+    contexts = [];
+    bootstrapNode = undefined;
   });
 
   it('should rollup txs from all peers', async () => {
     // create the bootstrap node for the network
-    const bootstrapNode = await createBootstrapNode();
+    bootstrapNode = await createBootstrapNode();
     const bootstrapNodeAddress = `/ip4/127.0.0.1/tcp/${BOOT_NODE_TCP_PORT}/p2p/${bootstrapNode
       .getPeerId()!
       .toString()}`;
@@ -50,7 +61,6 @@ describe('e2e_p2p_network', () => {
     // the number of txs per node and the number of txs per rollup
     // should be set so that the only way for rollups to be built
     // is if the txs are successfully gossiped around the nodes.
-    const contexts: NodeContext[] = [];
     for (let i = 0; i < NUM_NODES; i++) {
       const node = await createNode(i + 1 + BOOT_NODE_TCP_PORT, bootstrapNodeAddress);
       const context = await createAztecRpcServerAndSubmitTransactions(node, NUM_TXS_PER_NODE);
@@ -71,12 +81,23 @@ describe('e2e_p2p_network', () => {
       }
     }
 
-    // shutdown all nodes.
-    for (const context of contexts) {
-      await context.node.stop();
-      await context.rpcServer.stop();
+    // ensure that all node see the same world state
+    const initial = await contexts[0].node.getTreeRoots();
+    for (let i = 1; i < contexts.length; i++) {
+      const roots = await contexts[i].node.getTreeRoots();
+      expect(initial[MerkleTreeId.CONTRACT_TREE]).toEqual(roots[MerkleTreeId.CONTRACT_TREE]);
+      expect(initial[MerkleTreeId.CONTRACT_TREE_ROOTS_TREE]).toEqual(roots[MerkleTreeId.CONTRACT_TREE_ROOTS_TREE]);
+      expect(initial[MerkleTreeId.L1_TO_L2_MESSAGES_ROOTS_TREE]).toEqual(
+        roots[MerkleTreeId.L1_TO_L2_MESSAGES_ROOTS_TREE],
+      );
+      expect(initial[MerkleTreeId.L1_TO_L2_MESSAGES_TREE]).toEqual(roots[MerkleTreeId.L1_TO_L2_MESSAGES_TREE]);
+      expect(initial[MerkleTreeId.NULLIFIER_TREE]).toEqual(roots[MerkleTreeId.NULLIFIER_TREE]);
+      expect(initial[MerkleTreeId.PRIVATE_DATA_TREE]).toEqual(roots[MerkleTreeId.PRIVATE_DATA_TREE]);
+      expect(initial[MerkleTreeId.PRIVATE_DATA_TREE_ROOTS_TREE]).toEqual(
+        roots[MerkleTreeId.PRIVATE_DATA_TREE_ROOTS_TREE],
+      );
+      expect(initial[MerkleTreeId.PUBLIC_DATA_TREE]).toEqual(roots[MerkleTreeId.PUBLIC_DATA_TREE]);
     }
-    await bootstrapNode.stop();
   }, 60_000);
 
   const createBootstrapNode = async () => {

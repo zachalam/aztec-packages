@@ -6,6 +6,7 @@ import { EncodedContractFunction } from './contract_data.js';
 import { SignedTxExecutionRequest } from './tx_execution_request.js';
 import { TxHash } from './tx_hash.js';
 import { UnverifiedData } from './unverified_data.js';
+import { BufferReader, Optional, serializeToBuffer } from '@aztec/circuits.js/utils';
 
 /**
  * Defines valid fields for a private transaction.
@@ -220,6 +221,43 @@ export class Tx {
             return PublicCallRequest.fromBuffer(x.toBuffer());
           });
     return new Tx(publicInputs, proof, unverified, signedTxRequest, publicFunctions, enqueuedPublicFunctions);
+  }
+
+  /**
+   * Serializes the transactions object into a buffer.
+   * @returns A buffer containing the serialized transaction.
+   */
+  toBuffer() {
+    return serializeToBuffer(
+      new Optional(this.data),
+      new Optional(this.proof),
+      new Optional(this.unverifiedData),
+      new Optional(this.txRequest),
+      new Optional(this.newContractPublicFunctions),
+      new Optional(this.enqueuedPublicFunctionCalls),
+    );
+  }
+
+  /**
+   * Deserializes from a buffer or reader, corresponding to a write in cpp.
+   * @param buffer - Buffer or reader to read from.
+   * @returns The deserialized `NewContractData`.
+   */
+  static fromBuffer(buffer: Buffer | BufferReader): Tx {
+    const reader = BufferReader.asReader(buffer);
+    const publicInputs = reader.readOptionalObject(KernelCircuitPublicInputs);
+    const proof = reader.readOptionalObject(Proof);
+    const unverifiedData = reader.readOptionalObject(UnverifiedData, () => new UnverifiedData([]));
+    const txRequest = reader.readOptionalObject(SignedTxExecutionRequest);
+    const functions = reader.readOptionalVector(EncodedContractFunction);
+    const publicCalls = reader.readOptionalVector(PublicCallRequest);
+
+    if (txRequest) {
+      return publicInputs
+        ? Tx.createPrivatePublic(publicInputs, proof!, unverifiedData!, txRequest!)
+        : Tx.createPublic(txRequest!);
+    }
+    return Tx.createPrivate(publicInputs!, proof!, unverifiedData!, functions!, publicCalls!);
   }
 }
 

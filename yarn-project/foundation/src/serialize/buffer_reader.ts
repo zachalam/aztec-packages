@@ -140,6 +140,33 @@ export class BufferReader {
   }
 
   /**
+   * Optionally reads a vector of fixed size from the buffer and deserializes its elements using the provided itemDeserializer object.
+   * The 'itemDeserializer' object should have a 'fromBuffer' method that takes a BufferReader instance and returns the deserialized element.
+   * The method first reads a boolean byte to determine if the original array was valid, then the size of the vector (a number) from the buffer, then iterates through its elements,
+   * deserializing each one using the 'fromBuffer' method of 'itemDeserializer'.
+   *
+   * @param itemDeserializer - Object with 'fromBuffer' method to deserialize vector elements.
+   * @returns An array of deserialized elements of type T or undefined.
+   */
+  public readOptionalVector<T>(itemDeserializer: {
+    /**
+     * A method to deserialize data from a buffer.
+     */
+    fromBuffer: (reader: BufferReader) => T;
+  }): T[] | undefined {
+    const valid = this.readBoolean();
+    if (!valid) {
+      return undefined;
+    }
+    const size = this.readNumber();
+    const result = new Array<T>(size);
+    for (let i = 0; i < size; i++) {
+      result[i] = itemDeserializer.fromBuffer(this);
+    }
+    return result;
+  }
+
+  /**
    * Read an array of a fixed size with elements of type T from the buffer.
    * The 'itemDeserializer' object should have a 'fromBuffer' method that takes a BufferReader instance as input,
    * and returns an instance of the desired deserialized data type T.
@@ -200,6 +227,30 @@ export class BufferReader {
     fromBuffer: (reader: BufferReader) => T;
   }): T {
     return deserializer.fromBuffer(this);
+  }
+
+  /**
+   * Optionally reads a serialized object from a buffer and returns the deserialized object using the given deserializer.
+   * Expects a boolean byte to determine if the object is valid.
+   * @typeparam T - The type of the deserialized object.
+   * @param deserializer - An object with a 'fromBuffer' method that takes a BufferReader instance and returns an instance of the deserialized object.
+   * @param factory - An optional method to contruct a default object instance.
+   * @returns The deserialized object of type T.
+   */
+  public readOptionalObject<T>(
+    deserializer: {
+      /**
+       * A method that takes a BufferReader instance and returns an instance of the deserialized data type.
+       */
+      fromBuffer: (reader: BufferReader) => T;
+    },
+    factory?: () => T,
+  ): T | undefined {
+    const valid = this.readBoolean();
+    if (valid) {
+      return this.readObject(deserializer);
+    }
+    return factory ? factory() : undefined;
   }
 
   /**
