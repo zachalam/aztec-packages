@@ -37,7 +37,7 @@ namespace aztec3::circuits::kernel::private_kernel {
 /**
  * @brief Some private circuit simulation (`deposit`, in this case)
  */
-TEST(native_private_kernel_init_tests, deposit)
+TEST(native_private_kernel_init_tests, basic_deposit)
 {
     NT::fr const& amount = 5;
     NT::fr const& asset_id = 1;
