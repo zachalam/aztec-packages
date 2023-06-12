@@ -3,7 +3,7 @@ import { CircuitsWasm } from '@aztec/circuits.js';
 import { KERNEL_NEW_COMMITMENTS_LENGTH } from '@aztec/circuits.js';
 import { Point } from '@aztec/foundation/fields';
 import { ConstantKeyPair, KeyPair } from '@aztec/key-store';
-import { L2Block, L2BlockContext, TxAuxData, NoirLogs } from '@aztec/types';
+import { L2Block, L2BlockContext, TxAuxData, L2Logs } from '@aztec/types';
 import { jest } from '@jest/globals';
 import { mock } from 'jest-mock-extended';
 import { Database, MemoryDB } from '../database/index.js';
@@ -36,13 +36,13 @@ describe('Account State', () => {
         ownedTxAuxData.push(txAuxData);
       }
     }
-    const encryptedLogs = new NoirLogs(dataChunks);
+    const encryptedLogs = new L2Logs(dataChunks);
     return { encryptedLogs, ownedTxAuxData };
   };
 
   const mockData = (firstBlockNum: number, ownedData: number[][]) => {
     const blockContexts: L2BlockContext[] = [];
-    const encryptedLogsArr: NoirLogs[] = [];
+    const encryptedLogsArr: L2Logs[] = [];
     const ownedTxAuxDatas: TxAuxData[] = [];
     for (let i = 0; i < ownedData.length; ++i) {
       const randomBlockContext = new L2BlockContext(L2Block.random(firstBlockNum + i));

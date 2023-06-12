@@ -16,7 +16,7 @@ import { L2Tx } from './l2_tx.js';
 import { PublicDataWrite } from './public_data_write.js';
 import { toBigIntBE, toBufferBE } from '@aztec/foundation/bigint-buffer';
 import { sha256 } from '@aztec/foundation/crypto';
-import { NoirLogs } from './noir_logs.js';
+import { L2Logs } from './noir_logs.js';
 
 /**
  * The data that makes up the rollup proof, with encoder decoder functions.
@@ -127,7 +127,7 @@ export class L2Block {
     /**
      * Consolidated logs from all txs.
      */
-    public newEncryptedLogs?: NoirLogs,
+    public newEncryptedLogs?: L2Logs,
   ) {}
 
   /**
@@ -144,7 +144,7 @@ export class L2Block {
     const newPublicDataWrites = times(KERNEL_PUBLIC_DATA_UPDATE_REQUESTS_LENGTH * txsPerBlock, PublicDataWrite.random);
     const newL1ToL2Messages = times(NUMBER_OF_L1_L2_MESSAGES_PER_ROLLUP, Fr.random);
     const newL2ToL1Msgs = times(KERNEL_NEW_L2_TO_L1_MSGS_LENGTH, Fr.random);
-    const newEncryptedLogs = NoirLogs.random(txsPerBlock * 2);
+    const newEncryptedLogs = L2Logs.random(txsPerBlock * 2);
     const newEncryptedLogsLength = newEncryptedLogs.getSerializedLength();
 
     return L2Block.fromFields({
@@ -286,7 +286,7 @@ export class L2Block {
     /**
      * Consolidated logs from all txs.
      */
-    newEncryptedLogs?: NoirLogs;
+    newEncryptedLogs?: L2Logs;
   }) {
     return new this(
       fields.number,
@@ -400,7 +400,7 @@ export class L2Block {
     // TODO(sean): could an optimisation of this be that it is encoded such that zeros are assumed
     const newL1ToL2Messages = reader.readVector(Fr);
     const newEncryptedLogsLength = reader.readNumber();
-    const newEncryptedLogs = new NoirLogs(reader.readBufferArray());
+    const newEncryptedLogs = new L2Logs(reader.readBufferArray());
 
     return L2Block.fromFields({
       number,
@@ -437,7 +437,7 @@ export class L2Block {
    * this function helps attach them in order to make the block data manipulation easier.
    * @param encryptedLogs - The encrypted logs to be attached to the block.
    */
-  attachEncryptedLogs(encryptedLogs: NoirLogs) {
+  attachEncryptedLogs(encryptedLogs: L2Logs) {
     // throw error if the block already has encrypted logs attached.
     if (this.newEncryptedLogs) {
       throw new Error('L2 block already has encrypted logs attached.');

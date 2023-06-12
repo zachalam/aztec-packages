@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto';
 /**
  * Data container of logs corresponding to one L2 block.
  */
-export class NoirLogs {
+export class L2Logs {
   constructor(
     /**
      * Chunks of logs corresponding to individual pieces of information (e.g. Encrypted preimages).
@@ -35,36 +35,36 @@ export class NoirLogs {
   }
 
   /**
-   * Creates a new NoirLogs object by concatenating multiple ones.
+   * Creates a new L2Logs object by concatenating multiple ones.
    * @param datas - The individual data objects to concatenate.
-   * @returns A new NoirLogs object whose chunks are the concatenation of the chunks.
+   * @returns A new L2Logs object whose chunks are the concatenation of the chunks.
    */
-  public static join(datas: NoirLogs[]): NoirLogs {
-    return new NoirLogs(datas.flatMap(chunk => chunk.dataChunks));
+  public static join(datas: L2Logs[]): L2Logs {
+    return new L2Logs(datas.flatMap(chunk => chunk.dataChunks));
   }
 
   /**
    * Deserializes logs from a buffer.
    * @param buf - The buffer containing the serialized logs.
-   * @returns A new NoirLogs object.
+   * @returns A new L2Logs object.
    */
-  public static fromBuffer(buf: Buffer | BufferReader): NoirLogs {
+  public static fromBuffer(buf: Buffer | BufferReader): L2Logs {
     const reader = BufferReader.asReader(buf);
 
     const chunks = reader.readBufferArray();
-    return new NoirLogs(chunks);
+    return new L2Logs(chunks);
   }
 
   /**
-   * Creates a new NoirLogs object with `numChunks` random data.
+   * Creates a new L2Logs object with `numChunks` random data.
    * @param numChunks - The number of chunks to create.
-   * @returns A new NoirLogs object.
+   * @returns A new L2Logs object.
    */
-  public static random(numChunks: number): NoirLogs {
+  public static random(numChunks: number): L2Logs {
     const chunks: Buffer[] = [];
     for (let i = 0; i < numChunks; i++) {
       chunks.push(randomBytes(144));
     }
-    return new NoirLogs(chunks);
+    return new L2Logs(chunks);
   }
 }

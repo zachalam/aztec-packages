@@ -11,8 +11,8 @@ import {
   EncodedContractFunction,
   L2Block,
   L2BlockSource,
-  NoirLogs,
-  NoirLogsSource,
+  L2Logs,
+  L2LogsSource,
 } from '@aztec/types';
 import { Chain, HttpTransport, PublicClient, createPublicClient, http } from 'viem';
 import { createEthereumChain } from '@aztec/ethereum';
@@ -32,7 +32,7 @@ import { ArchiverDataStore, MemoryArchiverStore } from './archiver_store.js';
  * Responsible for handling robust L1 polling so that other components do not need to
  * concern themselves with it.
  */
-export class Archiver implements L2BlockSource, NoirLogsSource, ContractDataSource, L1ToL2MessageSource {
+export class Archiver implements L2BlockSource, L2LogsSource, ContractDataSource, L1ToL2MessageSource {
   /**
    * A promise in which we will be continually fetching new L2 blocks.
    */
@@ -306,7 +306,7 @@ export class Archiver implements L2BlockSource, NoirLogsSource, ContractDataSour
    * @param take - The number of encrypted logs to return.
    * @returns The requested encrypted logs.
    */
-  public getEncryptedLogs(from: number, take: number): Promise<NoirLogs[]> {
+  public getEncryptedLogs(from: number, take: number): Promise<L2Logs[]> {
     return this.store.getEncryptedLogs(from, take);
   }
 

@@ -1,16 +1,16 @@
-import { NoirLogs } from './noir_logs.js';
+import { L2Logs } from './noir_logs.js';
 
 /**
  * Interface of classes allowing for the retrieval of encrypted logs.
  */
-export interface NoirLogsSource {
+export interface L2LogsSource {
   /**
    * Gets the `take` amount of encrypted logs starting from `from`.
    * @param from - Number of the L2 block to which corresponds the first `encryptedLogs` to be returned.
    * @param take - The number of `encryptedLogs` to return.
    * @returns The requested `encryptedLogs`.
    */
-  getEncryptedLogs(from: number, take: number): Promise<NoirLogs[]>;
+  getEncryptedLogs(from: number, take: number): Promise<L2Logs[]>;
 
   /**
    * Starts the encrypted logs source.

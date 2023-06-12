@@ -21,7 +21,7 @@ import {
   SignedTxExecutionRequest,
   Tx,
   TxHash,
-  NoirLogs,
+  L2Logs,
 } from '@aztec/types';
 
 /**
@@ -47,7 +47,7 @@ export function txToJson(tx: Tx) {
  */
 export function txFromJson(json: any) {
   const publicInputs = json.data ? KernelCircuitPublicInputs.fromBuffer(Buffer.from(json.data, 'hex')) : undefined;
-  const encryptedLogs = json.encryptedLogs ? NoirLogs.fromBuffer(Buffer.from(json.encryptedLogs, 'hex')) : undefined;
+  const encryptedLogs = json.encryptedLogs ? L2Logs.fromBuffer(Buffer.from(json.encryptedLogs, 'hex')) : undefined;
   const txRequest = json.txRequest
     ? SignedTxExecutionRequest.fromBuffer(Buffer.from(json.txRequest, 'hex'))
     : undefined;
@@ -143,7 +143,7 @@ export class HttpNode implements AztecNode {
    * @param take - The number of encrypted logs to return.
    * @returns The requested encrypted logs.
    */
-  public async getEncryptedLogs(from: number, take: number): Promise<NoirLogs[]> {
+  public async getEncryptedLogs(from: number, take: number): Promise<L2Logs[]> {
     const url = new URL(`${this.baseUrl}/get-encrypted-logs`);
     url.searchParams.append('from', from.toString());
     if (take !== undefined) {
@@ -155,7 +155,7 @@ export class HttpNode implements AztecNode {
     if (!encryptedLogs) {
       return Promise.resolve([]);
     }
-    return Promise.resolve(encryptedLogs.map(x => NoirLogs.fromBuffer(Buffer.from(x, 'hex'))));
+    return Promise.resolve(encryptedLogs.map(x => L2Logs.fromBuffer(Buffer.from(x, 'hex'))));
   }
 
   /**
