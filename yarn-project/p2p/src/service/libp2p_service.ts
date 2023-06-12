@@ -194,7 +194,7 @@ export class LibP2PService implements P2PService {
    * @param tx - The transaction to propagate.
    */
   public propagateTx(tx: Tx): void {
-    void this.jobQueue.put(() => Promise.resolve(this.sendTxToPeers(tx)));
+    void this.jobQueue.put(() => this.sendTxToPeers(tx));
   }
 
   /**

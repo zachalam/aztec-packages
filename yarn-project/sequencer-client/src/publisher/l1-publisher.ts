@@ -289,7 +289,7 @@ export class L1Publisher implements L2BlockReceiver {
       try {
         return await this.txSender.getTransactionReceipt(txHash);
       } catch (err) {
-        //this.log(`Error getting tx receipt`, err);
+        this.log(`Error getting tx receipt`, err);
         await this.sleepOrInterrupted();
       }
     }

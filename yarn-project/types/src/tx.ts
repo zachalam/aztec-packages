@@ -7,6 +7,7 @@ import { SignedTxExecutionRequest } from './tx_execution_request.js';
 import { TxHash } from './tx_hash.js';
 import { UnverifiedData } from './unverified_data.js';
 import { BufferReader, Optional, serializeToBuffer } from '@aztec/circuits.js/utils';
+import cloneDeep from 'lodash.clonedeep';
 
 /**
  * Defines valid fields for a private transaction.
@@ -203,24 +204,7 @@ export class Tx {
    * @returns The cloned transaction.
    */
   static clone(tx: Tx): Tx {
-    const publicInputs = tx.data === undefined ? undefined : KernelCircuitPublicInputs.fromBuffer(tx.data.toBuffer());
-    const proof = tx.proof === undefined ? undefined : Proof.fromBuffer(tx.proof.toBuffer());
-    const unverified =
-      tx.unverifiedData === undefined ? undefined : UnverifiedData.fromBuffer(tx.unverifiedData.toBuffer());
-    const signedTxRequest = tx.txRequest?.clone();
-    const publicFunctions =
-      tx.newContractPublicFunctions === undefined
-        ? undefined
-        : tx.newContractPublicFunctions.map(x => {
-            return EncodedContractFunction.fromBuffer(x.toBuffer());
-          });
-    const enqueuedPublicFunctions =
-      tx.enqueuedPublicFunctionCalls === undefined
-        ? undefined
-        : tx.enqueuedPublicFunctionCalls.map(x => {
-            return PublicCallRequest.fromBuffer(x.toBuffer());
-          });
-    return new Tx(publicInputs, proof, unverified, signedTxRequest, publicFunctions, enqueuedPublicFunctions);
+    return cloneDeep(tx);
   }
 
   /**
