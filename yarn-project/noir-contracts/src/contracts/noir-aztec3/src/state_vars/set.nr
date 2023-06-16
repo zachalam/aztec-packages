@@ -33,6 +33,7 @@ impl Set {
 
         let note_hash = note.compute_note_hash();
 
+        // constrain that oracle call returns 0
         constrain notify_created_note(storage_slot, note.owner, note) == 0;
         context.push_new_note_hash(note_hash)
     }

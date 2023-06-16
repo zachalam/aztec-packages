@@ -8,13 +8,18 @@ use crate::oracle::get_l1_to_l2_message::get_l1_to_l2_message_call;
 use crate::messaging::l1_to_l2_message_getter_data::L1ToL2MessageGetterData;
 use crate::messaging::l1_to_l2_message_getter_data::make_l1_to_l2_message_getter_data;
 
+struct Tuple<T0, T1> {
+    first: T0,
+    second: T1,
+}
+
 // When finished, one can call .finish() to convert back to the abi
 struct PrivateFunctionContext {
     // inputs: abi::PrivateContextInputs,
     args : BoundedVec<Field, abi::MAX_ARGS>,
     return_values : BoundedVec<Field, abi::MAX_RETURN_VALUES>,
 
-    read_requests: BoundedVec<Field, abi::MAX_READ_REQUESTS>,
+    read_requests: BoundedVec<Tuple<Field, Field>, abi::MAX_READ_REQUESTS>,
 
     new_commitments: BoundedVec<Field, abi::MAX_NEW_COMMITMENTS>,
     new_nullifiers: BoundedVec<Field, abi::MAX_NEW_NULLIFIERS>,
@@ -35,6 +40,10 @@ impl PrivateFunctionContext {
     fn new() -> PrivateFunctionContext {
         PrivateFunctionContext {
             // inputs: inputs,
+
+            // start_counter
+            // counter = start_counter
+
             args: BoundedVec::new(0),
             return_values: BoundedVec::new(0),
 
@@ -61,6 +70,11 @@ impl PrivateFunctionContext {
         let args_hash = dep::std::hash::pedersen(self.args.storage)[0];
 
         let priv_circuit_pub_inputs = abi::PrivateCircuitPublicInputs {
+            // need to accept start counter from parent
+            // need to pass current counter to nested calls
+            // need to pass end counter back to parent
+            //start_counter: start_counter,
+            //end_counter: counter,
             call_context: inputs.call_context,
             args_hash: args_hash,
             return_values: self.return_values.storage,
@@ -82,7 +96,8 @@ impl PrivateFunctionContext {
     }
 
     fn push_read_request(mut self: Self, read_request: Field) -> Self {
-        self.read_requests = self.read_requests.push(read_request);
+        counter++;
+        self.read_requests = self.read_requests.push(Tuple::new(read_request, counter));
         self
     }
 

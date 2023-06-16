@@ -139,10 +139,12 @@ impl FunctionData {
 // = 6 + 1 + 4 + 4 + 4 + 4 + 4  + 4 + 2 + 1 + 1 + 1 + 1 + 4
 // = 41
 struct PrivateCircuitPublicInputs {
+    // start_counter
+    // end_counter
     call_context: CallContext,
     args_hash: Field,
     return_values: [Field; crate::abi::MAX_RETURN_VALUES],
-    read_requests: [Field; crate::abi::MAX_READ_REQUESTS],
+    read_requests: [Field; crate::abi::MAX_READ_REQUESTS * 2],
     new_commitments: [Field; crate::abi::MAX_NEW_COMMITMENTS],
     new_nullifiers: [Field; crate::abi::MAX_NEW_NULLIFIERS],
     private_call_stack: [Field; crate::abi::MAX_PRIVATE_CALL_STACK],

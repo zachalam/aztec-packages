@@ -38,7 +38,8 @@ impl PrivateCallStackItem {
         let fields = call_private_function_internal(
             contract_address, 
             function_selector, 
-            args
+            args,
+            //context.counter
         );
         let item = PrivateCallStackItem {
             contract_address: fields[0],
@@ -56,7 +57,10 @@ impl PrivateCallStackItem {
                     msg_sender : fields[7],
                     storage_contract_address : fields[8],
                     portal_contract_address : fields[9],
+                    // maybe counter here instead?
                 },
+                // start_counter // constrain context.counter == start_counter
+                // end_counter // context.end_counter = end_counter // constrain end >= start
                 // TODO handle the offsets as a variable incremented during extraction?
                 args_hash: fields[10],
                 return_values: arr_copy_slice(fields, [0; crate::abi::MAX_RETURN_VALUES], 11),
