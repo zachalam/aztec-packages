@@ -44,45 +44,34 @@ impl Set {
         let notes = get_2_notes(storage_slot);
 
         let note0_hash = notes.0.compute_note_hash();
-        //let note1_hash = notes.1.compute_note_hash();
+        let note1_hash = notes.1.compute_note_hash();
 
-        //if notes.0.is_real  {
-        //    context = context.push_read_request(note0_hash);
-        //}
-        //if notes.1.is_real {
+        if (notes.0.is_real)  {
+            context = context.push_read_request(note0_hash);
+        }
+        //if (notes.1.is_real) {
         //    context = context.push_read_request(note1_hash);
         //}
         // needed for some reason to avoid compile error?
-        //assert(updated_context.args.get(0) != 0x0bad);
-        //(updated_context, notes)
-
-        // TODO/FIXME(dbanks12): really should be using the above
-        // conditionals to only push 'real' notes to context, but
-        // the conditionals do not work right yet.
-        // need to include 0-2 notes based on is_real!!!!
-        // https://github.com/AztecProtocol/aztec-packages/issues/780
-        (
-            context
-                .push_read_request(note0_hash),
-                //.push_read_request(note1_hash),
-            notes
-        )
+        assert(context.args.get(0) != 0x0bad);
+        (context, notes)
     }
 
 
     fn remove(self, inputs: PrivateContextInputs, mut context: PrivateFunctionContext, note: Note) -> PrivateFunctionContext {
         let contract_address = inputs.call_context.storage_contract_address;
         let storage_slot = self.storage_slot;
+        assert(contract_address != 0x0bad);
 
         let note_hash = note.compute_note_hash();
         // TODO uncomment this when we can specify hash index
-        // let siloed_note_hash = dep::std::hash::pedersen([
-        //     crate::NoteStorageSlot,
-        //     note_hash,
-        //     storage_slot,
-        //     contract_address,
-        // ])[0];
-        // let nullifier = note.compute_nullifier(siloed_note_hash);
+        //let siloed_note_hash = dep::std::hash::pedersen([
+        //    crate::NoteStorageSlot,
+        //    note_hash,
+        //    storage_slot,
+        //    contract_address,
+        //])[0];
+        //let nullifier = note.compute_nullifier(siloed_note_hash);
         let nullifier = note.compute_nullifier(note_hash);
 
         assert(notify_nullified_note(storage_slot, nullifier, note) == 0);
