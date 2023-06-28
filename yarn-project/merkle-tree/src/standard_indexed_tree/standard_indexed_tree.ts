@@ -452,7 +452,6 @@ export class StandardIndexedTree extends TreeBase implements IndexedTree {
    *  nextIdx   5       2       3       8       6       2       0       7
    *  nextVal   2      10      15      19       3       5       0       20
    *
-   * TODO: this implementation will change once the zero value is changed from h(0,0,0). Changes incoming over the next sprint
    * @param leaves - Values to insert into the tree.
    * @param treeHeight - Height of the tree.
    * @param subtreeHeight - Height of the subtree.
