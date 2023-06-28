@@ -37,6 +37,7 @@ using aztec3::circuits::rollup::test_utils::utils::base_rollup_inputs_from_kerne
 using aztec3::circuits::rollup::test_utils::utils::compare_field_hash_to_expected;
 using aztec3::circuits::rollup::test_utils::utils::get_empty_kernel;
 using aztec3::circuits::rollup::test_utils::utils::get_initial_nullifier_tree;
+using aztec3::circuits::rollup::test_utils::utils::get_tree_snapshot;
 // using aztec3::circuits::mock::mock_kernel_inputs;
 
 using aztec3::circuits::abis::AppendOnlyTreeSnapshot;
@@ -312,11 +313,11 @@ TEST_F(base_rollup_tests, native_new_nullifier_tree_empty)
 
     std::array<fr, KERNEL_NEW_NULLIFIERS_LENGTH* 2> const new_nullifiers = { 0, 0, 0, 0, 0, 0, 0, 0 };
     auto nullifier_tree = get_initial_nullifier_tree({ 1, 2, 3, 4, 5, 6, 7 });
-    auto start_nullifier_tree_snapshot = nullifier_tree.get_snapshot();
+    auto start_nullifier_tree_snapshot = get_tree_snapshot(nullifier_tree);
     for (auto v : new_nullifiers) {
         nullifier_tree.update_element(v);
     }
-    auto end_nullifier_tree_snapshot = nullifier_tree.get_snapshot();
+    auto end_nullifier_tree_snapshot = get_tree_snapshot(nullifier_tree);
 
     /**
      * RUN
@@ -348,11 +349,11 @@ void nullifier_insertion_test(std::array<fr, KERNEL_NEW_NULLIFIERS_LENGTH * 2> n
     // Regression test caught when testing the typescript nullifier tree implementation
 
     auto nullifier_tree = get_initial_nullifier_tree({ 1, 2, 3, 4, 5, 6, 7 });
-    auto start_nullifier_tree_snapshot = nullifier_tree.get_snapshot();
+    auto start_nullifier_tree_snapshot = get_tree_snapshot(nullifier_tree);
     for (auto v : new_nullifiers) {
         nullifier_tree.update_element(v);
     }
-    auto end_nullifier_tree_snapshot = nullifier_tree.get_snapshot();
+    auto end_nullifier_tree_snapshot = get_tree_snapshot(nullifier_tree);
 
     DummyComposer composer = DummyComposer("base_rollup_tests__nullifier_insertion_test");
     std::array<PreviousKernelData<NT>, 2> kernel_data = { get_empty_kernel(), get_empty_kernel() };
@@ -396,11 +397,11 @@ TEST_F(base_rollup_tests, native_new_nullifier_tree_sparse)
     std::array<fr, KERNEL_NEW_NULLIFIERS_LENGTH* 2> const nullifiers = { 6, 11, 16, 21, 26, 31, 36, 41 };
 
     auto nullifier_tree = get_initial_nullifier_tree(initial_values);
-    auto expected_start_nullifier_tree_snapshot = nullifier_tree.get_snapshot();
+    auto expected_start_nullifier_tree_snapshot = get_tree_snapshot(nullifier_tree);
     for (auto v : nullifiers) {
         nullifier_tree.update_element(v);
     }
-    auto expected_end_nullifier_tree_snapshot = nullifier_tree.get_snapshot();
+    auto expected_end_nullifier_tree_snapshot = get_tree_snapshot(nullifier_tree);
 
     DummyComposer composer = DummyComposer("base_rollup_tests__native_new_nullifier_tree_sparse");
     BaseRollupInputs const empty_inputs = base_rollup_inputs_from_kernels({ get_empty_kernel(), get_empty_kernel() });
@@ -450,11 +451,11 @@ TEST_F(base_rollup_tests, native_nullifier_tree_regression)
     new_nullifiers[1] = uint256_t("26ab07ce103a55e29f11478eaa36cebd10c4834b143a7debcc7ef53bfdb547dd");
 
     auto nullifier_tree = get_initial_nullifier_tree(initial_values);
-    auto expected_start_nullifier_tree_snapshot = nullifier_tree.get_snapshot();
+    auto expected_start_nullifier_tree_snapshot = get_tree_snapshot(nullifier_tree);
     for (auto v : new_nullifiers) {
         nullifier_tree.update_element(v);
     }
-    auto expected_end_nullifier_tree_snapshot = nullifier_tree.get_snapshot();
+    auto expected_end_nullifier_tree_snapshot = get_tree_snapshot(nullifier_tree);
 
     /**
      * RUN
@@ -599,7 +600,7 @@ TEST_F(base_rollup_tests, native_compute_membership_historic_private_data_negati
 
     // Create an INCORRECT sibling path for the private data tree root in the historic tree roots.
     auto hash_path = private_data_tree.get_sibling_path(0);
-    std::array<NT::fr, PRIVATE_DATA_TREE_ROOTS_TREE_HEIGHT> sibling_path;
+    std::array<NT::fr, PRIVATE_DATA_TREE_ROOTS_TREE_HEIGHT> sibling_path{};
     for (size_t i = 0; i < PRIVATE_DATA_TREE_ROOTS_TREE_HEIGHT; ++i) {
         sibling_path[i] = hash_path[i] + 1;
     }
@@ -627,7 +628,7 @@ TEST_F(base_rollup_tests, native_compute_membership_historic_contract_tree_negat
 
     // Create an INCORRECT sibling path for contract tree root in the historic tree roots.
     auto hash_path = contract_tree.get_sibling_path(0);
-    std::array<NT::fr, CONTRACT_TREE_ROOTS_TREE_HEIGHT> sibling_path;
+    std::array<NT::fr, CONTRACT_TREE_ROOTS_TREE_HEIGHT> sibling_path{};
     for (size_t i = 0; i < CONTRACT_TREE_ROOTS_TREE_HEIGHT; ++i) {
         sibling_path[i] = hash_path[i] + 1;
     }

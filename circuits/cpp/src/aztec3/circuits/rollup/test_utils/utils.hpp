@@ -1,6 +1,5 @@
 #pragma once
 #include "init.hpp"
-#include "nullifier_tree_testing_harness.hpp"
 
 #include "aztec3/circuits/abis/public_data_update_request.hpp"
 #include "aztec3/circuits/hash.hpp"
@@ -38,9 +37,6 @@ using KernelData = aztec3::circuits::abis::PreviousKernelData<NT>;
 using MemoryStore = stdlib::merkle_tree::MemoryStore;
 using SparseTree = stdlib::merkle_tree::MerkleTree<MemoryStore>;
 
-using aztec3::circuits::abis::MembershipWitness;
-using aztec3::circuits::abis::PreviousRollupData;
-
 using nullifier_tree_testing_values = std::tuple<BaseRollupInputs, AppendOnlyTreeSnapshot, AppendOnlyTreeSnapshot>;
 }  // namespace
 
@@ -67,7 +63,7 @@ template <size_t N> std::array<fr, N> get_sibling_path(SparseTree& tree, uint256
     return siblingPath;
 }
 
-abis::AppendOnlyTreeSnapshot<NT> get_snapshot_of_tree_state(NullifierMemoryTreeTestingHarness nullifier_tree);
+abis::AppendOnlyTreeSnapshot<NT> get_snapshot_of_tree_state(NullifierTree nullifier_tree);
 
 nullifier_tree_testing_values generate_nullifier_tree_testing_values_explicit(
     BaseRollupInputs inputs,
@@ -83,7 +79,7 @@ std::array<fr, NUMBER_OF_L1_L2_MESSAGES_PER_ROLLUP> get_empty_l1_to_l2_messages(
 nullifier_tree_testing_values generate_nullifier_tree_testing_values(
     BaseRollupInputs inputs, std::array<fr, KERNEL_NEW_NULLIFIERS_LENGTH * 2> new_nullifiers, size_t spacing);
 
-NullifierMemoryTreeTestingHarness get_initial_nullifier_tree(const std::vector<fr>& initial_values);
+NullifierTree get_initial_nullifier_tree(const std::vector<fr>& initial_values);
 
 KernelData get_empty_kernel();
 
@@ -92,6 +88,19 @@ RootRollupInputs get_root_rollup_inputs(utils::DummyComposer& composer,
                                         std::array<fr, NUMBER_OF_L1_L2_MESSAGES_PER_ROLLUP> l1_to_l2_messages);
 
 MergeRollupInputs get_merge_rollup_inputs(utils::DummyComposer& composer, std::array<KernelData, 4> kernel_data);
+
+abis::AppendOnlyTreeSnapshot<NT> get_nullifier_tree_snapshot(NullifierTree nullifier_tree);
+
+/**
+ * @brief Get the append only tree snapshot object for a nullifier tree.
+ *
+ * @param nullifier_tree
+ * @return abis::AppendOnlyTreeSnapshot<NT>
+ */
+template <typename Tree> abis::AppendOnlyTreeSnapshot<NT> get_tree_snapshot(Tree tree)
+{
+    return { .root = tree.root(), .next_available_leaf_index = static_cast<unsigned int>(tree.get_leaves().size()) };
+}
 
 inline abis::PublicDataUpdateRequest<NT> make_public_data_update_request(fr leaf_index, fr old_value, fr new_value)
 {

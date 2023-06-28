@@ -1,7 +1,5 @@
 #include "utils.hpp"
 
-#include "nullifier_tree_testing_harness.hpp"
-
 #include "aztec3/circuits/abis/membership_witness.hpp"
 #include "aztec3/circuits/abis/new_contract_data.hpp"
 #include "aztec3/circuits/abis/rollup/root/root_rollup_public_inputs.hpp"
@@ -129,7 +127,7 @@ BaseRollupInputs base_rollup_inputs_from_kernels(std::array<KernelData, 2> kerne
     // Initialise nullifier tree with 0..7
     std::vector<fr> const initial_values = { 1, 2, 3, 4, 5, 6, 7 };
 
-    std::array<fr, KERNEL_NEW_NULLIFIERS_LENGTH * 2> nullifiers;
+    std::array<fr, KERNEL_NEW_NULLIFIERS_LENGTH * 2> nullifiers{};
     for (size_t i = 0; i < 2; i++) {
         for (size_t j = 0; j < KERNEL_NEW_NULLIFIERS_LENGTH; j++) {
             nullifiers[i * 4 + j] = kernel_data[i].public_inputs.end.new_nullifiers[j];
@@ -250,7 +248,7 @@ std::array<PreviousRollupData<NT>, 2> get_previous_rollup_data(DummyComposer& co
     MerkleTree private_data_tree = MerkleTree(PRIVATE_DATA_TREE_HEIGHT);
     MerkleTree contract_tree = MerkleTree(CONTRACT_TREE_HEIGHT);
     std::vector<fr> initial_values = { 1, 2, 3, 4, 5, 6, 7 };
-    std::array<fr, KERNEL_NEW_NULLIFIERS_LENGTH * 2> nullifiers;
+    std::array<fr, KERNEL_NEW_NULLIFIERS_LENGTH * 2> nullifiers{};
 
     for (size_t i = 0; i < 2; i++) {
         for (size_t j = 0; j < KERNEL_NEW_COMMITMENTS_LENGTH; j++) {
@@ -369,21 +367,22 @@ RootRollupInputs get_root_rollup_inputs(utils::DummyComposer& composer,
  * @param initial_values values to pre-populate the tree
  * @return NullifierMemoryTreeTestingHarness
  */
-NullifierMemoryTreeTestingHarness get_initial_nullifier_tree(const std::vector<fr>& initial_values)
+NullifierTree get_initial_nullifier_tree(const std::vector<fr>& initial_values)
 {
-    NullifierMemoryTreeTestingHarness nullifier_tree = NullifierMemoryTreeTestingHarness(NULLIFIER_TREE_HEIGHT);
+    NullifierTree nullifier_tree = NullifierTree(NULLIFIER_TREE_HEIGHT);
     for (const auto& initial_value : initial_values) {
         nullifier_tree.update_element(initial_value);
     }
     return nullifier_tree;
 }
 
+
 nullifier_tree_testing_values generate_nullifier_tree_testing_values(BaseRollupInputs inputs,
                                                                      size_t starting_insertion_value = 0,
                                                                      size_t spacing = 5)
 {
     const size_t NUMBER_OF_NULLIFIERS = KERNEL_NEW_NULLIFIERS_LENGTH * 2;
-    std::array<fr, NUMBER_OF_NULLIFIERS> nullifiers;
+    std::array<fr, NUMBER_OF_NULLIFIERS> nullifiers{};
     for (size_t i = 0; i < NUMBER_OF_NULLIFIERS; ++i) {
         auto insertion_val = (starting_insertion_value + i * spacing);
         nullifiers[i] = fr(insertion_val);
@@ -417,8 +416,8 @@ nullifier_tree_testing_values generate_nullifier_tree_testing_values_explicit(
 {
     size_t const start_tree_size = initial_values.size() + 1;
     // Generate nullifier tree testing values
-    NullifierMemoryTreeTestingHarness nullifier_tree = get_initial_nullifier_tree(initial_values);
-    NullifierMemoryTreeTestingHarness reference_tree = get_initial_nullifier_tree(initial_values);
+    NullifierTree nullifier_tree = get_initial_nullifier_tree(initial_values);
+    NullifierTree reference_tree = get_initial_nullifier_tree(initial_values);
 
     AppendOnlyTreeSnapshot const nullifier_tree_start_snapshot = {
         .root = nullifier_tree.root(),
@@ -446,7 +445,7 @@ nullifier_tree_testing_values generate_nullifier_tree_testing_values_explicit(
     }
 
     // Get the hash paths etc from the insertion values
-    auto witnesses_and_preimages = nullifier_tree.circuit_prep_batch_insert(insertion_values);
+    auto witnesses_and_preimages = nullifier_tree.batch_insert(insertion_values);
 
     auto new_nullifier_leaves_preimages = std::get<0>(witnesses_and_preimages);
     auto new_nullifier_leaves_sibling_paths = std::get<1>(witnesses_and_preimages);
@@ -484,7 +483,7 @@ nullifier_tree_testing_values generate_nullifier_tree_testing_values_explicit(
     };
 
     std::vector<fr> sibling_path = reference_tree.get_sibling_path(start_tree_size);
-    std::array<fr, NULLIFIER_SUBTREE_INCLUSION_CHECK_DEPTH> sibling_path_array;
+    std::array<fr, NULLIFIER_SUBTREE_INCLUSION_CHECK_DEPTH> sibling_path_array{};
 
     // Chop the first 3 levels from the sibling_path
     sibling_path.erase(sibling_path.begin(), sibling_path.begin() + NULLIFIER_SUBTREE_DEPTH);
@@ -519,7 +518,7 @@ bool compare_field_hash_to_expected(std::array<fr, NUM_FIELDS_PER_SHA256> field_
     auto high_buffer = field_hash[0].to_buffer();
     auto low_buffer = field_hash[1].to_buffer();
 
-    std::array<uint8_t, 32> field_expanded_hash;
+    std::array<uint8_t, 32> field_expanded_hash{};
     for (uint8_t i = 0; i < 16; ++i) {
         field_expanded_hash[i] = high_buffer[16 + i];
         field_expanded_hash[16 + i] = low_buffer[16 + i];
