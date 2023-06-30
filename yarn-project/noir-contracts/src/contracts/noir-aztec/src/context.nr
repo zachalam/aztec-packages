@@ -43,8 +43,6 @@ impl Context {
                     }
                 }
                 chunk_hash = dep::std::hash::pedersen_with_separator(chunk_args, generators::FUNCTION_ARGS)[0];
-            }else {
-                chunk_hash = 0;
             }
             chunks_hashes[i] = chunk_hash;
         }

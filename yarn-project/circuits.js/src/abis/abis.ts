@@ -249,14 +249,14 @@ export function computeVarArgsHash(wasm: IWasmModule, args: Fr[]): Promise<Fr> {
 
   let chunksHashes = chunk(args, ARGS_HASH_CHUNK_SIZE).map(c => {
     if (c.length < ARGS_HASH_CHUNK_SIZE) {
-      // Pad with zeros
+      // Pad with zeroes
       c = c.concat(Array(ARGS_HASH_CHUNK_SIZE - c.length).fill(Fr.ZERO));
     }
     return wasmComputeVarArgs(c);
   });
 
   if (chunksHashes.length < ARGS_HASH_CHUNK_COUNT) {
-    // Pad with zeros
+    // Pad with zeroes
     chunksHashes = chunksHashes.concat(Array(ARGS_HASH_CHUNK_COUNT - chunksHashes.length).fill(Fr.ZERO));
   }
 
