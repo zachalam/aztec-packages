@@ -1,13 +1,17 @@
 use crate::types::vec::BoundedVec;
 use crate::abi;
+use crate::generators;
 
 // l1 to l2 messaging
 use crate::messaging::process_l1_to_l2_message;
 
+global ARGS_HASH_CHUNK_SIZE = 32;
+global ARGS_HASH_CHUNK_COUNT = 16;
+
 // When finished, one can call .finish() to convert back to the abi
 struct Context {
-    // inputs: abi::PrivateContextInputs,
-    args : BoundedVec<Field, abi::MAX_ARGS>,
+    inputs: abi::PrivateContextInputs,
+    args_hash : Field,
     return_values : BoundedVec<Field, abi::MAX_RETURN_VALUES>,
 
     read_requests: BoundedVec<Field, abi::MAX_READ_REQUESTS>,
@@ -27,11 +31,30 @@ struct Context {
 }
 
 impl Context {
-    // fn new(inputs: abi::PrivateContextInputs) -> Context {
-    fn new() -> Context {
+    fn hash_args<N>(args: [Field; N]) -> Field {
+        let mut chunks_hashes = [0; ARGS_HASH_CHUNK_COUNT];
+        for i in 0..ARGS_HASH_CHUNK_COUNT {
+            let mut chunk_hash = 0;
+            if i * ARGS_HASH_CHUNK_SIZE < args.len() {
+                let mut chunk_args = [0; ARGS_HASH_CHUNK_SIZE];
+                for j in 0..ARGS_HASH_CHUNK_SIZE {
+                    if (i * ARGS_HASH_CHUNK_COUNT + j) as u32 < args.len() as u32 {
+                        chunk_args[j] = args[i * ARGS_HASH_CHUNK_SIZE + j];
+                    }
+                }
+                chunk_hash = dep::std::hash::pedersen_with_separator(chunk_args, generators::FUNCTION_ARGS)[0];
+            }else {
+                chunk_hash = 0;
+            }
+            chunks_hashes[i] = chunk_hash;
+        }
+        dep::std::hash::pedersen_with_separator(chunks_hashes, generators::FUNCTION_ARGS)[0]
+    }
+
+    fn new(inputs: abi::PrivateContextInputs, args_hash: Field) -> Context {
         Context {
-            // inputs: inputs,
-            args: BoundedVec::new(0),
+            inputs: inputs,
+            args_hash: args_hash,
             return_values: BoundedVec::new(0),
 
             read_requests: BoundedVec::new(0),
@@ -51,13 +74,10 @@ impl Context {
         }
     }
 
-    fn finish(self, inputs: abi::PrivateContextInputs) -> abi::PrivateCircuitPublicInputs {
-        // TODO hash_index
-        let args_hash = dep::std::hash::pedersen(self.args.storage)[0];
-
+    fn finish(self) -> abi::PrivateCircuitPublicInputs {
         let priv_circuit_pub_inputs = abi::PrivateCircuitPublicInputs {
-            call_context: inputs.call_context,
-            args_hash: args_hash,
+            call_context: self.inputs.call_context,
+            args_hash: self.args_hash,
             return_values: self.return_values.storage,
             read_requests: self.read_requests.storage,
             new_commitments: self.new_commitments.storage,
@@ -70,10 +90,10 @@ impl Context {
             // unencrypted_logs_hash: self.unencrypted_logs_hash.storage,
             // encrypted_log_preimages_length: self.encrypted_log_preimages_length,
             // unencrypted_log_preimages_length: self.unencrypted_log_preimages_length,
-            commitment_trees_roots: inputs.roots,
-            contract_deployment_data: inputs.contract_deployment_data,
-            chain_id: inputs.private_global_variables.chain_id,
-            version: inputs.private_global_variables.version,
+            commitment_trees_roots: self.inputs.roots,
+            contract_deployment_data: self.inputs.contract_deployment_data,
+            chain_id: self.inputs.private_global_variables.chain_id,
+            version: self.inputs.private_global_variables.version,
         };
         priv_circuit_pub_inputs
     }
