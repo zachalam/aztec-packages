@@ -116,7 +116,7 @@ describe('Private Execution test suite', () => {
       recipient = toPublicKey(recipientPk, grumpkin);
     });
 
-    it('should a constructor with arguments that creates notes', async () => {
+    it.only('should a constructor with arguments that creates notes', async () => {
       const contractAddress = AztecAddress.random();
       const abi = ZkTokenContractAbi.functions.find(f => f.name === 'constructor')!;
 

@@ -199,6 +199,12 @@ export class PrivateFunctionExecution {
 
     // TODO(#499): Noir fails to compute the args hash, so we patch those values here.
     const wasm = await CircuitsWasm.get();
+    console.log(
+      'Expected args hash',
+      await computeVarArgsHash(wasm, this.args),
+      'actual args hash',
+      publicInputs.argsHash,
+    );
     publicInputs.argsHash = await computeVarArgsHash(wasm, this.args);
 
     // TODO(#1347): Noir fails with too many unknowns error when public inputs struct contains too many members.
