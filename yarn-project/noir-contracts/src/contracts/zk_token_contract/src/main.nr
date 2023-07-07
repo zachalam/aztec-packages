@@ -7,6 +7,7 @@ contract ZkToken {
         value_note::{
             value_note::ValueNote,
             filter::get_2_notes,
+            filter::get_4_notes,
         }
     };
 
@@ -136,35 +137,66 @@ contract ZkToken {
         sender: Point, 
         amounts: [Field; 3], 
         recipients: [Point; 3],
-        spendFirstNote: bool, // currently we spend only 1 note since kernel commitment length is just 4. 
-        // But if this is increased to 16, we need a hack against pending nullifiers. 
-        // This lets app dev work on utxo concurrency stuff. What we really need is offset to be provided in `getNotes` in noir.
+        spend_note_index: Field,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
         let storage = Storage::init();
-        let mut initialContext = Context::new(inputs, abi::hash_args([sender.x, sender.y, amounts[0], amounts[1], amounts[2], recipients[0].x, recipients[1].x, recipients[2].x, recipients[0].y, recipients[1].y, recipients[2].y, spendFirstNote as Field]));
+        let mut initialContext = Context::new(inputs, abi::hash_args([
+            sender.x, 
+            sender.y, 
+            amounts[0], 
+            amounts[1], 
+            amounts[2], 
+            recipients[0].x, 
+            recipients[1].x, 
+            recipients[2].x, 
+            recipients[0].y, 
+            recipients[1].y, 
+            recipients[2].y, 
+            spend_note_index as Field
+        ]));
         // Gets the set of sender's notes and picks first 2 of those.
         let sender_balance = storage.balances.at(sender.x);
-        let options = NoteGetterOptions::with_filter(get_2_notes, 0);
+        let options = NoteGetterOptions::with_filter(get_4_notes, 0);
         let (mut context, notes) = sender_balance.get_notes(initialContext, options);
         let note1 = notes[0];
         let note2 = notes[1];
+        let note3 = notes[2];
+        let note4 = notes[3];
+
+        assert(spend_note_index as u64 < 4);
 
         // Ensure the notes are actually owned by the sender (to prevent user from generating a valid proof while
         // spending someone else's notes).
         note1.validate(sender);
         note2.validate(sender);
+        note3.validate(sender);
+        note4.validate(sender);
 
         // Checks that the first notes is greater than or equal to the total amount being transferred.
         let total_amount = amounts[0] + amounts[1] + amounts[2];
-        let note_value = if spendFirstNote { note1.value } else { note2.value };
+        let mut note_value = 0;
+        if spend_note_index == 0 {
+            note_value = note1.value;
+        } else if spend_note_index == 1 {
+            note_value = note2.value;
+        } else if spend_note_index == 2 {
+            note_value = note3.value;
+        } else {
+            note_value = note4.value;
+        }
+        
         assert(note_value as u64 >= total_amount as u64);
         let change_value = note_value - total_amount;
         
         // Removes only the note that is meant to be actually spent from the owner's notes.
-        if (spendFirstNote) {
+        if spend_note_index == 0 {
             context = sender_balance.remove(context, note1);
-        } else {
+        } else if spend_note_index == 1 {
             context = sender_balance.remove(context, note2);
+        } else if spend_note_index == 2 {
+            context = sender_balance.remove(context, note3);
+        } else {
+            context = sender_balance.remove(context, note4);
         }
 
         // Creates 4 new notes, three for the recipients and one for the sender (change note).

@@ -12,6 +12,7 @@ import SchnorrAccountContractJson from './schnorr_account_contract.json' assert 
 import GullibleAccountContractJson from './gullible_account_contract.json' assert { type: 'json' };
 import UniswapContractJson from './uniswap_contract.json' assert { type: 'json' };
 import ConsumerFinanceContractJson from './consumer_finance_contract.json' assert { type: 'json' };
+import MultiTransferContractJson from './multi_transfer_contract.json' assert { type: 'json' };
 
 export const TestContractAbi = TestContractJson as ContractAbi;
 export const ZkTokenContractAbi = ZkTokenContractJson as ContractAbi;
@@ -25,3 +26,4 @@ export const SchnorrAccountContractAbi = SchnorrAccountContractJson as ContractA
 export const GullibleAccountContractAbi = GullibleAccountContractJson as ContractAbi;
 export const UniswapContractAbi = UniswapContractJson as ContractAbi;
 export const ConsumerFinanceContractAbi = ConsumerFinanceContractJson as ContractAbi;
+export const MultiTransferContractAbi = MultiTransferContractJson as ContractAbi;
