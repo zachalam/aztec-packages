@@ -54,7 +54,7 @@ const getMockGlobalVariables = () => {
 };
 
 const getMockL1ToL2MessagesData = () => {
-  return new Array(NUMBER_OF_L1_L2_MESSAGES_PER_ROLLUP).map(() => Fr.random());
+  return Array.from({ length: NUMBER_OF_L1_L2_MESSAGES_PER_ROLLUP }, () => Fr.random());
 };
 
 const getMockBlock = (blockNumber: number, newContractsCommitments?: Buffer[]) => {
