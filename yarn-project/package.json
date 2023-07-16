@@ -29,6 +29,7 @@
     "foundation",
     "key-store",
     "merkle-tree",
+    "mike-play",
     "noir-contracts",
     "noir-compiler",
     "l1-artifacts",

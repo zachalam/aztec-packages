@@ -17,6 +17,7 @@
     "sequencer-client",
     "types",
     "world-state",
-    "merkle-tree"
+    "merkle-tree",
+    "mike-play"
   ]
 }

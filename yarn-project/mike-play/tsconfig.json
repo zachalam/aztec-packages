@@ -1,0 +1,18 @@
+{
+  "extends": "..",
+  "compilerOptions": {
+    "outDir": "dest",
+    "rootDir": "src",
+    "tsBuildInfoFile": ".tsbuildinfo"
+  },
+  "references": [
+    {
+      "path": "../foundation"
+    },
+    {
+      "path": "../types"
+    }
+  ],
+  "include": ["src", "src/**/*.json"],
+  "exclude": ["contracts"]
+}
