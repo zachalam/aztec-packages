@@ -161,6 +161,7 @@ contract PendingCommitments {
         let storage = Storage::init();
         let mut context = Context::new(inputs, abi::hash_args([expected_value, owner]));
 
+        // owner's set of value notes
         let owner_balance = storage.balances.at(owner);
 
         // Hack: we add the return value from `notifyCreatedNote` oracle call

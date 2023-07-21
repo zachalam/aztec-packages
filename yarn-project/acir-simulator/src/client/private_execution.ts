@@ -80,6 +80,10 @@ export class PrivateFunctionExecution {
       getNotes: ([slot], sortBy, sortOrder, [limit], [offset], [returnSize]) =>
         this.context.getNotes(this.contractAddress, slot, sortBy, sortOrder, +limit, +offset, +returnSize),
       getRandomField: () => Promise.resolve(toACVMField(Fr.random())),
+      // TODO(jean): may need to communicate additional information to simulator
+      // via oracle calls to inform simulator on how to determine when the nullifier
+      // for a note (that is being gotten via 'getNotes') has already been created
+      // earlier in this TX.
       notifyCreatedNote: async ([storageSlot], preimage) => {
         await this.context.pushNewNote(this.contractAddress, storageSlot, preimage);
 

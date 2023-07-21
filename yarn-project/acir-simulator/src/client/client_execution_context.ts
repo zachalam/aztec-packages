@@ -36,6 +36,7 @@ export class ClientTxExecutionContext {
     public packedArgsCache: PackedArgsCache,
     /** Pending commitments created (and not nullified) up to current point in execution **/
     private pendingNotes: NoteData[] = [],
+    // TODO(jean) pendingNullifiers
   ) {}
 
   /**
@@ -127,6 +128,14 @@ export class ClientTxExecutionContext {
       limit,
       offset,
     });
+
+    // TODO(jean) make sure notes aren't already nullified in this TX
+    // (either here or maybe in pickNotes?)
+    // How can we match a note to a pendingNullifier?
+    // probably pendingNullifiers should be a Set, so its easy to check
+    // for their existence
+    // we need to know how to compute or otherwise know the nullifier for a given note
+    // at this stage we have the list of note PREIMAGES, not even commitments
 
     // Combine pending and db preimages into a single flattened array.
     const preimages = notes.flatMap(({ nonce, preimage }) => [nonce, ...preimage]);
