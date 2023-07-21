@@ -2,7 +2,6 @@
 title: Noir
 ---
 
-
 ## What is Noir
 
 Zero-knowledge proofs (ZKP) have been gaining tremendous traction in the blockchain space, came up first as a privacy solution and increasingly as a scaling solution.

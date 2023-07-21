@@ -4,7 +4,6 @@ title: Vision
 slug: "/"
 ---
 
-
 import Disclaimer from './aztec/common/\_disclaimer.mdx';
 
 <Disclaimer/>
