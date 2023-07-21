@@ -20,10 +20,11 @@ jobs:
 
       - name: Push to branch
         run: |
-          # constants for easy changes
+          # we push using the git subrepo (https://github.com/ingydotnet/git-subrepo)
+          # at path SUBREPO_PATH, under 
+          # the CACHE_BRANCH 
           CACHE_BRANCH=aztec-bot/docs-git-subrepo-cache
           PREVIOUS_CACHE_BRANCH=origin/$CACHE_BRANCH
-          SUBREPO=docs
           SUBREPO_PATH=docs
           # identify ourselves, needed to commit
           git config --global user.email "tech@aztecprotocol.com"
