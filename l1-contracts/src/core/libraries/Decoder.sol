@@ -360,7 +360,7 @@ library Decoder {
         uint256 leafDataLengthPerBase = constantsLengthsPerBase.commitmentCount;
 
         // Adding new commitments
-        assembly{
+        assembly {
           calldatacopy(
             dstPtr, add(_l2Block.offset, mload(offsets)), mul(leafDataLengthPerBase, 0x20)
           )
@@ -411,45 +411,61 @@ library Decoder {
         }
         dstPtr += leafDataLengthPerBase * 0x20;
 
-          // Kernel1.contract.aztecAddress
+        // Kernel1.contract.aztecAddress
         uint256 contractDataOffset = offsets.contractDataOffset;
-        assembly { calldatacopy(dstPtr, add(_l2Block.offset, contractDataOffset), 0x20) }
+        assembly {
+          calldatacopy(dstPtr, add(_l2Block.offset, contractDataOffset), 0x20)
+        }
         dstPtr += 0x20;
 
         // Kernel1.contract.ethAddress padded to 32 bytes
         // Add 12 (0xc) bytes of padding to the ethAddress
         dstPtr += 0xc;
-        assembly { calldatacopy(dstPtr, add(_l2Block.offset, add(contractDataOffset, 0x20)), 0x14) }
+        assembly {
+          calldatacopy(dstPtr, add(_l2Block.offset, add(contractDataOffset, 0x20)), 0x14)
+        }
         dstPtr += 0x14;
 
-          // Kernel2.contract.aztecAddress
-        assembly { calldatacopy(dstPtr, add(_l2Block.offset, add(contractDataOffset, 0x34)), 0x20) }
+        // Kernel2.contract.aztecAddress
+        assembly {
+          calldatacopy(dstPtr, add(_l2Block.offset, add(contractDataOffset, 0x34)), 0x20)
+        }
         dstPtr += 0x20;
 
-          // Kernel2.contract.ethAddress padded to 32 bytes
-          // Add 12 (0xc) bytes of padding to the ethAddress
+        // Kernel2.contract.ethAddress padded to 32 bytes
+        // Add 12 (0xc) bytes of padding to the ethAddress
         dstPtr += 0xc;
-        assembly { calldatacopy(dstPtr, add(_l2Block.offset, add(contractDataOffset, 0x54)), 0x14) }
+        assembly {
+          calldatacopy(dstPtr, add(_l2Block.offset, add(contractDataOffset, 0x54)), 0x14)
+        }
 
-          // encryptedLogsHashKernel1
+        // encryptedLogsHashKernel1
         dstPtr += 0x14;
         bytes32 hash = vars.encrypedLogsHashKernel1;
-        assembly { mstore(dstPtr, hash) } 
+        assembly {
+          mstore(dstPtr, hash)
+        }
 
-          // encryptedLogsHashKernel2
+        // encryptedLogsHashKernel2
         dstPtr += 0x20;
         hash = vars.encrypedLogsHashKernel2;
-        assembly { mstore(dstPtr, hash) } 
+        assembly {
+          mstore(dstPtr, hash)
+        }
 
-          // unencryptedLogsHashKernel1
+        // unencryptedLogsHashKernel1
         dstPtr += 0x20;
         hash = vars.unencryptedLogsHashKernel1;
-        assembly { mstore(dstPtr, hash) } 
+        assembly {
+          mstore(dstPtr, hash)
+        }
 
-          // unencryptedLogsHashKernel2
-          dstPtr += 0x20;
+        // unencryptedLogsHashKernel2
+        dstPtr += 0x20;
         hash = vars.unencryptedLogsHashKernel2;
-        assembly { mstore(dstPtr, hash) }
+        assembly {
+          mstore(dstPtr, hash)
+        }
 
         offsets.commitmentOffset += 2 * Constants.COMMITMENTS_PER_TX * 0x20;
         offsets.nullifierOffset += 2 * Constants.NULLIFIERS_PER_TX * 0x20;
