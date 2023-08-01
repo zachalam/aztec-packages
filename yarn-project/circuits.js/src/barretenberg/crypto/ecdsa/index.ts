@@ -1,8 +1,4 @@
-import { toBufferBE } from '@aztec/foundation/bigint-buffer';
-import { numToUInt32BE } from '@aztec/foundation/serialize';
 import { IWasmModule } from '@aztec/foundation/wasm';
-
-import { secp256k1 } from '@noble/curves/secp256k1';
 
 import { CircuitsWasm, Point, PrivateKey, PublicKey } from '../../../index.js';
 import { Signer } from '../index.js';
