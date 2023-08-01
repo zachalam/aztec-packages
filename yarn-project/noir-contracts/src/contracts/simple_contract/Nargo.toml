@@ -1,0 +1,8 @@
+[package]
+name = "state"
+authors = [""]
+compiler_version = "0.9.0"
+
+[dependencies]
+aztec = { path =  "../../../../noir-libs/noir-aztec" }
+easy_private_state = { path =  "../../../../noir-libs/easy-private-state" }

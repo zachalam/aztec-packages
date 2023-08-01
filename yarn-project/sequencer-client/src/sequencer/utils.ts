@@ -1,11 +1,13 @@
-import { CombinedHistoricTreeRoots, Fr, PrivateHistoricTreeRoots } from '@aztec/circuits.js';
+import { CombinedHistoricTreeRoots, Fr, GlobalVariables, PrivateHistoricTreeRoots } from '@aztec/circuits.js';
 import { MerkleTreeId } from '@aztec/types';
 import { MerkleTreeOperations } from '@aztec/world-state';
 
 /**
  * Fetches the private, nullifier, contract tree and l1 to l2 messages tree roots from a given db and assembles a CombinedHistoricTreeRoots object.
  */
-export async function getCombinedHistoricTreeRoots(db: MerkleTreeOperations) {
+export async function getCombinedHistoricTreeRoots(db: MerkleTreeOperations, 
+  // globalVariables: GlobalVariables
+  )  {
   return new CombinedHistoricTreeRoots(
     new PrivateHistoricTreeRoots(
       Fr.fromBuffer((await db.getTreeInfo(MerkleTreeId.PRIVATE_DATA_TREE)).root),
@@ -15,5 +17,9 @@ export async function getCombinedHistoricTreeRoots(db: MerkleTreeOperations) {
       Fr.fromBuffer((await db.getTreeInfo(MerkleTreeId.BLOCKS_TREE)).root),
       Fr.ZERO,
     ),
+
+    Fr.ZERO, // globalVariables.hash(),
+    // TODO: update this with the correct previous globals hash
+    Fr.fromBuffer((await db.getTreeInfo(MerkleTreeId.PUBLIC_DATA_TREE)).root),
   );
 }
