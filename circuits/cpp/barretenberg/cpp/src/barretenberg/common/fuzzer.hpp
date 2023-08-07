@@ -2,6 +2,8 @@
 #include "barretenberg/numeric/uint256/uint256.hpp"
 #include "barretenberg/proof_system/circuit_builder/standard_circuit_builder.hpp"
 #include "barretenberg/proof_system/circuit_builder/turbo_circuit_builder.hpp"
+#include "barretenberg/proof_system/circuit_builder/ultra_circuit_builder.hpp"
+#include "barretenberg/stdlib/primitives/circuit_builders/circuit_builders_fwd.hpp"
 #include <concepts>
 
 #define PARENS ()
@@ -688,5 +690,8 @@ constexpr void RunWithComposers(const uint8_t* Data, const size_t Size, FastRand
     }
     if (Composers & 2) {
         RunWithComposer<Fuzzer, proof_system::TurboCircuitBuilder>(Data, Size, VarianceRNG);
+    }
+    if (Composers & 4) {
+        RunWithComposer<Fuzzer, proof_system::UltraCircuitBuilder>(Data, Size, VarianceRNG);
     }
 }
