@@ -9,7 +9,7 @@ export COMPOSE_FILE=${2:-./scripts/docker-compose.yml}
 if [ -n "$COMMIT_HASH" ]; then
   aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 278380418400.dkr.ecr.us-east-2.amazonaws.com
 
-  for REPO in end-to-end; do
+  for REPO in sandbox aztec-cli end-to-end; do
     docker pull 278380418400.dkr.ecr.us-east-2.amazonaws.com/$REPO:cache-$COMMIT_HASH
     docker tag 278380418400.dkr.ecr.us-east-2.amazonaws.com/$REPO:cache-$COMMIT_HASH aztecprotocol/$REPO:latest
   done
