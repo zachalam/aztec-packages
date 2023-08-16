@@ -8,7 +8,7 @@ import { Fr } from '@aztec/foundation/fields';
 import { DebugLogger, createDebugLogger } from '@aztec/foundation/log';
 import { AztecNode, FunctionCall, TxExecutionRequest } from '@aztec/types';
 
-import { initLogLevel, createBackend, SimulatedBackend } from 'acvm_js';
+import { SimulatedBackend, createBackend, initLogLevel } from 'acvm_js';
 
 import { PackedArgsCache } from '../packed_args_cache.js';
 import { ClientTxExecutionContext } from './client_execution_context.js';
@@ -39,7 +39,7 @@ export class AcirSimulator {
     const logger = createDebugLogger('aztec:simulator:getBackend');
     logger(`Getting or initializing ACVM SimulatedBackend`);
     if (!this.backend) {
-      initLogLevel("INFO"); // acvm rust log level
+      initLogLevel('INFO'); // acvm rust log level
       logger(`Initializing ACVM SimulatedBackend`);
       this.backend = await createBackend();
     } else {

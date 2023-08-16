@@ -83,7 +83,6 @@ describe('Unconstrained Execution test suite', () => {
       );
 
       expect(result2).toEqual(9n);
-
     }, 30_000);
   });
 });

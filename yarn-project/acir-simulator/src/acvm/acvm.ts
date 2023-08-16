@@ -3,7 +3,14 @@ import { EthAddress } from '@aztec/foundation/eth-address';
 import { Fr } from '@aztec/foundation/fields';
 import { createDebugLogger } from '@aztec/foundation/log';
 
-import { ForeignCallInput, ForeignCallOutput, SimulatedBackend, WitnessMap, executeCircuit, initLogLevel } from 'acvm_js';
+import {
+  ForeignCallInput,
+  ForeignCallOutput,
+  SimulatedBackend,
+  WitnessMap,
+  executeCircuit,
+  initLogLevel,
+} from 'acvm_js';
 
 /**
  * The format for fields on the ACVM.
@@ -78,21 +85,26 @@ export async function acvm(
   // package.json - "acvm_js": "https://github.com/dbanks12/acvm-simulator-wasm#db/init-sim-backend",
   const logger = createDebugLogger('aztec:simulator:acvm');
   logger(`Executing circuit with backend: ${JSON.stringify(backend)}`);
-  const partialWitness = await executeCircuit(backend, acir, initialWitness, async (name: string, args: ForeignCallInput[]) => {
-    try {
-      logger(`Oracle callback ${name}`);
-      const oracleFunction = callback[name as ORACLE_NAMES];
-      if (!oracleFunction) {
-        throw new Error(`Oracle callback ${name} not found`);
-      }
+  const partialWitness = await executeCircuit(
+    backend,
+    acir,
+    initialWitness,
+    async (name: string, args: ForeignCallInput[]) => {
+      try {
+        logger(`Oracle callback ${name}`);
+        const oracleFunction = callback[name as ORACLE_NAMES];
+        if (!oracleFunction) {
+          throw new Error(`Oracle callback ${name} not found`);
+        }
 
-      const result = await oracleFunction.call(callback, ...args);
-      return [result];
-    } catch (err: any) {
-      logger(`Error in oracle callback ${name}: ${err.message ?? err ?? 'Unknown'}`);
-      throw err;
-    }
-  });
+        const result = await oracleFunction.call(callback, ...args);
+        return [result];
+      } catch (err: any) {
+        logger(`Error in oracle callback ${name}: ${err.message ?? err ?? 'Unknown'}`);
+        throw err;
+      }
+    },
+  );
   logger(`Done executing circuit, backend is: ${JSON.stringify(backend)}`);
   return Promise.resolve({ partialWitness });
 }
