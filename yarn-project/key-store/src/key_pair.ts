@@ -1,15 +1,6 @@
-import { Curve } from '@aztec/circuits.js/barretenberg';
-import { randomBytes } from '@aztec/foundation/crypto';
-import { Point } from '@aztec/foundation/fields';
-
-/**
- * Represents a cryptographic public-private key pair.
- * Provides functionality to generate, access, and sign messages using the key pair.
- */
-export interface KeyPair {
-  getPublicKey(): Point;
-  getPrivateKey(): Promise<Buffer>;
-}
+import { PrivateKey } from '@aztec/circuits.js';
+import { Grumpkin } from '@aztec/circuits.js/barretenberg';
+import { KeyPair, PublicKey } from '@aztec/types';
 
 /**
  * The ConstantKeyPair class is an implementation of the KeyPair interface, which allows generation and management of a constant public and private key pair. It provides methods for creating a random instance of the key pair, retrieving the public key, getting the private key. This class ensures the persistence and consistency of the generated keys, making it suitable for cryptographic operations where constant key pairs are required.
@@ -24,9 +15,9 @@ export class ConstantKeyPair implements KeyPair {
    * @param curve - The curve used for elliptic curve cryptography operations.
    * @returns A randomly generated ConstantKeyPair instance.
    */
-  public static random(curve: Curve) {
-    const privateKey = randomBytes(32);
-    const publicKey = Point.fromBuffer(curve.mul(curve.generator(), privateKey));
+  public static random(curve: Grumpkin) {
+    const privateKey = PrivateKey.random();
+    const publicKey = curve.mul(curve.generator(), privateKey);
     return new ConstantKeyPair(publicKey, privateKey);
   }
 
@@ -37,29 +28,17 @@ export class ConstantKeyPair implements KeyPair {
    * @param privateKey - The private key.
    * @returns A new instance.
    */
-  public static fromPrivateKey(curve: Curve, privateKey: Buffer) {
-    const publicKey = Point.fromBuffer(curve.mul(curve.generator(), privateKey));
+  public static fromPrivateKey(curve: Grumpkin, privateKey: PrivateKey) {
+    const publicKey = curve.mul(curve.generator(), privateKey);
     return new ConstantKeyPair(publicKey, privateKey);
   }
 
-  constructor(private publicKey: Point, private privateKey: Buffer) {}
+  constructor(private publicKey: PublicKey, private privateKey: PrivateKey) {}
 
-  /**
-   * Retrieve the public key from the KeyPair instance.
-   * The returned public key is a Point object which represents a point on the elliptic curve secp256k1.
-   *
-   * @returns The public key as an elliptic curve point.
-   */
-  public getPublicKey() {
+  public getPublicKey(): PublicKey {
     return this.publicKey;
   }
 
-  /**
-   * Retrieves the private key of the KeyPair instance.
-   * The function returns a Promise that resolves to a Buffer containing the private key.
-   *
-   * @returns A Promise that resolves to a Buffer containing the private key.
-   */
   public getPrivateKey() {
     return Promise.resolve(this.privateKey);
   }

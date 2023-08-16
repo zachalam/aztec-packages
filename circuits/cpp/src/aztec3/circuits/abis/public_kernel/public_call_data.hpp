@@ -24,7 +24,7 @@ template <typename NCT> struct PublicCallData {
 
     CallStackItem<NCT, PublicTypes> call_stack_item{};
 
-    std::array<CallStackItem<NCT, PublicTypes>, PUBLIC_CALL_STACK_LENGTH> public_call_stack_preimages{};
+    std::array<CallStackItem<NCT, PublicTypes>, MAX_PUBLIC_CALL_STACK_LENGTH_PER_CALL> public_call_stack_preimages{};
 
     NativeTypes::Proof proof{};  // TODO: how to express proof as native/circuit type when it gets used as a buffer?
 
@@ -71,39 +71,5 @@ template <typename NCT> struct PublicCallData {
         return data;
     };
 };
-
-template <typename NCT> void read(uint8_t const*& it, PublicCallData<NCT>& obj)
-{
-    using serialize::read;
-
-    read(it, obj.call_stack_item);
-    read(it, obj.public_call_stack_preimages);
-    read(it, obj.proof);
-    read(it, obj.portal_contract_address);
-    read(it, obj.bytecode_hash);
-};
-
-template <typename NCT> void write(std::vector<uint8_t>& buf, PublicCallData<NCT> const& obj)
-{
-    using serialize::write;
-
-    write(buf, obj.call_stack_item);
-    write(buf, obj.public_call_stack_preimages);
-    write(buf, obj.proof);
-    write(buf, obj.portal_contract_address);
-    write(buf, obj.bytecode_hash);
-};
-
-template <typename NCT> std::ostream& operator<<(std::ostream& os, PublicCallData<NCT> const& obj)
-{
-    return os << "call_stack_item:\n"
-              << obj.call_stack_item << "\n"
-              << "public_call_stack_preimages:\n"
-              << obj.public_call_stack_preimages << "\n"
-              << "proof:\n"
-              << obj.proof << "\n"
-              << "portal_contract_address: " << obj.portal_contract_address << "\n"
-              << "bytecode_hash: " << obj.bytecode_hash << "\n";
-}
 
 }  // namespace aztec3::circuits::abis::public_kernel

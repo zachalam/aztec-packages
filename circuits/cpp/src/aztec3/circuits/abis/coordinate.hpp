@@ -66,23 +66,4 @@ template <typename NCT> struct Coordinate {
     }
 };
 
-template <typename NCT> void read(uint8_t const*& it, Coordinate<NCT>& coordinate)
-{
-    using serialize::read;
-
-    read(it, coordinate.fields);
-};
-
-template <typename NCT> void write(std::vector<uint8_t>& buf, Coordinate<NCT> const& coordinate)
-{
-    using serialize::write;
-
-    write(buf, coordinate.fields);
-};
-
-template <typename NCT> std::ostream& operator<<(std::ostream& os, Coordinate<NCT> const& coordinate)
-{
-    return os << "coordinate: " << coordinate.fields << "\n";
-}
-
 }  // namespace aztec3::circuits::abis

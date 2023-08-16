@@ -1,9 +1,9 @@
-import { AztecRPC, Tx, TxHash, TxReceipt } from '@aztec/aztec-rpc';
 import { AztecAddress, EthAddress, Fr, Point } from '@aztec/circuits.js';
 import { ContractAbi, FunctionType } from '@aztec/foundation/abi';
-import { PublicKey } from '@aztec/key-store';
-import { randomBytes } from 'crypto';
+import { AztecRPC, PublicKey, Tx, TxHash, TxReceipt } from '@aztec/types';
+
 import { MockProxy, mock } from 'jest-mock-extended';
+
 import { ContractDeployer } from './contract_deployer.js';
 
 describe.skip('Contract Deployer', () => {
@@ -15,6 +15,7 @@ describe.skip('Contract Deployer', () => {
       {
         name: 'constructor',
         functionType: FunctionType.SECRET,
+        isInternal: false,
         parameters: [],
         returnTypes: [],
         bytecode: '0af',
@@ -23,7 +24,7 @@ describe.skip('Contract Deployer', () => {
   };
 
   const publicKey: PublicKey = Point.random();
-  const portalContract = new EthAddress(randomBytes(EthAddress.SIZE_IN_BYTES));
+  const portalContract = EthAddress.random();
   const contractAddressSalt = Fr.random();
   const account = AztecAddress.random();
   const args = [12, 345n];
@@ -43,7 +44,7 @@ describe.skip('Contract Deployer', () => {
     const sentTx = deployer.deploy(args[0], args[1]).send({
       portalContract,
       contractAddressSalt,
-      from: account,
+      origin: account,
     });
     const txHash = await sentTx.getTxHash();
     const receipt = await sentTx.getReceipt();

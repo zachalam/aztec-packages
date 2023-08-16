@@ -105,40 +105,4 @@ template <typename NCT> struct TxContext {
     }
 };
 
-template <typename NCT> void read(uint8_t const*& it, TxContext<NCT>& tx_context)
-{
-    using serialize::read;
-
-    read(it, tx_context.is_fee_payment_tx);
-    read(it, tx_context.is_rebate_payment_tx);
-    read(it, tx_context.is_contract_deployment_tx);
-    read(it, tx_context.contract_deployment_data);
-    read(it, tx_context.chain_id);
-    read(it, tx_context.version);
-};
-
-template <typename NCT> void write(std::vector<uint8_t>& buf, TxContext<NCT> const& tx_context)
-{
-    using serialize::write;
-
-    write(buf, tx_context.is_fee_payment_tx);
-    write(buf, tx_context.is_rebate_payment_tx);
-    write(buf, tx_context.is_contract_deployment_tx);
-    write(buf, tx_context.contract_deployment_data);
-    write(buf, tx_context.chain_id);
-    write(buf, tx_context.version);
-};
-
-template <typename NCT> std::ostream& operator<<(std::ostream& os, TxContext<NCT> const& tx_context)
-{
-    return os << "is_fee_payment_tx: " << tx_context.is_fee_payment_tx << "\n"
-              << "is_rebate_payment_tx: " << tx_context.is_rebate_payment_tx << "\n"
-              << "is_contract_deployment_tx: " << tx_context.is_contract_deployment_tx << "\n"
-              << "contract_deployment_data: "
-              << "\n"
-              << tx_context.contract_deployment_data << "\n"
-              << "chain_id: " << tx_context.chain_id << "\n"
-              << "version: " << tx_context.version << "\n";
-}
-
 }  // namespace aztec3::circuits::abis

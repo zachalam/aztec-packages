@@ -1,10 +1,12 @@
-import { AztecRPC, Point } from '@aztec/aztec-rpc';
+import { Point } from '@aztec/circuits.js';
 import { ContractAbi } from '@aztec/foundation/abi';
+import { AztecRPC, PublicKey } from '@aztec/types';
+
 import { DeployMethod } from './deploy_method.js';
-import { PublicKey } from '@aztec/key-store';
 
 /**
  * A class for deploying contract.
+ * @remarks Keeping this around even though we have noir contract types because it can be useful for non-TS users.
  */
 export class ContractDeployer {
   constructor(private abi: ContractAbi, private arc: AztecRPC, private publicKey?: PublicKey) {}

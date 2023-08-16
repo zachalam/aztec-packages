@@ -1,35 +1,25 @@
 import {
-  AztecRPC,
-  Contract,
-  ContractDeployer,
-  TxStatus,
-  createAccounts,
-  createAztecRpcClient,
-  getL1ContractAddresses,
-  pointToPublicKey,
   AztecAddress,
   EthAddress,
   Fr,
   Wallet,
   computeMessageSecretHash,
+  createAccounts,
+  createAztecRpcClient,
+  getL1ContractAddresses,
 } from '@aztec/aztec.js';
+import { PrivateKey } from '@aztec/circuits.js';
 import { createDebugLogger } from '@aztec/foundation/log';
-import { UniswapContractAbi } from '@aztec/noir-contracts/examples';
+import { UniswapPortalAbi, UniswapPortalBytecode } from '@aztec/l1-artifacts';
+import { SchnorrSingleKeyAccountContractAbi } from '@aztec/noir-contracts/artifacts';
+import { NonNativeTokenContract, UniswapContract } from '@aztec/noir-contracts/types';
+import { AztecRPC, TxStatus } from '@aztec/types';
+
 import { createPublicClient, createWalletClient, getContract, http, parseEther } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { foundry } from 'viem/chains';
-import { delay, deployAndInitializeNonNativeL2TokenContracts, deployL1Contract } from './util.js';
-import { UniswapPortalAbi, UniswapPortalBytecode } from '@aztec/l1-artifacts';
 
-/**
- * Type representation of a Public key's coordinates.
- */
-type PublicKey = {
-  /** Public key X coord */
-  x: bigint;
-  /** Public key Y coord */
-  y: bigint;
-};
+import { delay, deployAndInitializeNonNativeL2TokenContracts, deployL1Contract } from './util.js';
 
 const logger = createDebugLogger('aztec:http-rpc-client');
 
@@ -47,7 +37,7 @@ const aztecRpcUrl = 'http://localhost:8080';
 const ethRpcUrl = 'http://localhost:8545';
 
 const hdAccount = mnemonicToAccount(MNEMONIC);
-const privateKey = Buffer.from(hdAccount.getHdKey().privateKey!);
+const privateKey = new PrivateKey(Buffer.from(hdAccount.getHdKey().privateKey!));
 
 const walletClient = createWalletClient({
   account: hdAccount,
@@ -70,9 +60,9 @@ let wallet: Wallet;
 
 /**
  * Deploys all l1 / l2 contracts
- * @param ownerPub - Public key of deployer.
+ * @param owner - Owner address.
  */
-async function deployAllContracts(ownerPub: PublicKey) {
+async function deployAllContracts(owner: AztecAddress) {
   const l1ContractsAddresses = await getL1ContractAddresses(aztecRpcUrl);
   logger('Deploying DAI Portal, initializing and deploying l2 contract...');
   const daiContracts = await deployAndInitializeNonNativeL2TokenContracts(
@@ -81,7 +71,7 @@ async function deployAllContracts(ownerPub: PublicKey) {
     publicClient,
     l1ContractsAddresses!.registry,
     INITIAL_BALANCE,
-    ownerPub,
+    owner,
     DAI_ADDRESS,
   );
   const daiL2Contract = daiContracts.l2Contract;
@@ -95,7 +85,7 @@ async function deployAllContracts(ownerPub: PublicKey) {
     publicClient,
     l1ContractsAddresses!.registry,
     INITIAL_BALANCE,
-    ownerPub,
+    owner,
     WETH9_ADDRESS,
   );
   const wethL2Contract = wethContracts.l2Contract;
@@ -118,11 +108,10 @@ async function deployAllContracts(ownerPub: PublicKey) {
   });
 
   // deploy l2 uniswap contract and attach to portal
-  const deployer = new ContractDeployer(UniswapContractAbi, aztecRpcClient).deploy();
-  const tx = deployer.send({ portalContract: uniswapPortalAddress });
-  await tx.isMined(0, 0.5);
+  const tx = UniswapContract.deploy(aztecRpcClient).send({ portalContract: uniswapPortalAddress });
+  await tx.isMined({ interval: 0.5 });
   const receipt = await tx.getReceipt();
-  const uniswapL2Contract = new Contract(receipt.contractAddress!, UniswapContractAbi, wallet);
+  const uniswapL2Contract = await UniswapContract.at(receipt.contractAddress!, wallet);
   await uniswapL2Contract.attach(uniswapPortalAddress);
 
   await uniswapPortal.write.initialize(
@@ -140,41 +129,34 @@ async function deployAllContracts(ownerPub: PublicKey) {
     wethTokenPortalAddress,
     uniswapL2Contract,
     uniswapPortal,
-    uniswapPortalAddress,
   };
 }
 
-const getL2BalanceOf = async (aztecRpcClient: AztecRPC, owner: AztecAddress, l2Contract: any) => {
-  const ownerPublicKey = await aztecRpcClient.getAccountPublicKey(owner);
-  const [balance] = await l2Contract.methods.getBalance(pointToPublicKey(ownerPublicKey)).view({ from: owner });
-  return balance;
+const getL2BalanceOf = async (aztecRpcClient: AztecRPC, owner: AztecAddress, l2Contract: NonNativeTokenContract) => {
+  return await l2Contract.methods.getBalance(owner).view({ from: owner });
 };
 
 const logExpectedBalanceOnL2 = async (
   aztecRpcClient: AztecRPC,
   owner: AztecAddress,
   expectedBalance: bigint,
-  l2Contract: any,
+  l2Contract: NonNativeTokenContract,
 ) => {
   const balance = await getL2BalanceOf(aztecRpcClient, owner, l2Contract);
   logger(`Account ${owner} balance: ${balance}. Expected to be: ${expectedBalance}`);
 };
 
 const transferWethOnL2 = async (
-  aztecRpcClient: AztecRPC,
-  wethL2Contract: Contract,
+  _aztecRpcClient: AztecRPC,
+  wethL2Contract: NonNativeTokenContract,
   ownerAddress: AztecAddress,
   receiver: AztecAddress,
   transferAmount: bigint,
 ) => {
   const transferTx = wethL2Contract.methods
-    .transfer(
-      transferAmount,
-      pointToPublicKey(await aztecRpcClient.getAccountPublicKey(ownerAddress)),
-      pointToPublicKey(await aztecRpcClient.getAccountPublicKey(receiver)),
-    )
-    .send({ from: ownerAddress });
-  await transferTx.isMined(0, 0.5);
+    .transfer(transferAmount, ownerAddress, receiver)
+    .send({ origin: ownerAddress });
+  await transferTx.isMined({ interval: 0.5 });
   const transferReceipt = await transferTx.getReceipt();
   // expect(transferReceipt.status).toBe(TxStatus.MINED);
   logger(`WETH to L2 Transfer Receipt status: ${transferReceipt.status} should be ${TxStatus.MINED}`);
@@ -186,12 +168,11 @@ const transferWethOnL2 = async (
 async function main() {
   logger('Running L1/L2 messaging test on HTTP interface.');
 
-  wallet = await createAccounts(aztecRpcClient, privateKey!, 2);
+  wallet = await createAccounts(aztecRpcClient, SchnorrSingleKeyAccountContractAbi, privateKey!, Fr.random(), 2);
   const accounts = await wallet.getAccounts();
   const [owner, receiver] = accounts;
-  const ownerPub = pointToPublicKey(await aztecRpcClient.getAccountPublicKey(owner));
 
-  const result = await deployAllContracts(ownerPub);
+  const result = await deployAllContracts(owner.address);
   const {
     daiL2Contract,
     daiContract,
@@ -202,7 +183,6 @@ async function main() {
     wethTokenPortalAddress,
     uniswapL2Contract,
     uniswapPortal,
-    uniswapPortalAddress,
   } = result;
 
   // Give me some WETH so I can deposit to L2 and do the swap...
@@ -235,23 +215,23 @@ async function main() {
   await delay(5000);
   // send a transfer tx to force through rollup with the message included
   const transferAmount = 1n;
-  await transferWethOnL2(aztecRpcClient, wethL2Contract, owner, receiver, transferAmount);
+  await transferWethOnL2(aztecRpcClient, wethL2Contract, owner.address, receiver.address, transferAmount);
 
   // 3. Claim WETH on L2
   logger('Minting weth on L2');
   // Call the mint tokens function on the noir contract
   const consumptionTx = wethL2Contract.methods
-    .mint(wethAmountToBridge, ownerPub, owner, messageKey, secret, ethAccount.toField())
-    .send({ from: owner });
-  await consumptionTx.isMined(0, 0.5);
+    .mint(wethAmountToBridge, owner.address, messageKey, secret, ethAccount.toField())
+    .send({ origin: owner.address });
+  await consumptionTx.isMined({ interval: 0.5 });
   const consumptionReceipt = await consumptionTx.getReceipt();
   // expect(consumptionReceipt.status).toBe(TxStatus.MINED);
   logger(`Consumption Receipt status: ${consumptionReceipt.status} should be ${TxStatus.MINED}`);
   // await expectBalanceOnL2(ownerAddress, wethAmountToBridge + initialBalance - transferAmount, wethL2Contract);
 
   // Store balances
-  const wethBalanceBeforeSwap = await getL2BalanceOf(aztecRpcClient, owner, wethL2Contract);
-  const daiBalanceBeforeSwap = await getL2BalanceOf(aztecRpcClient, owner, daiL2Contract);
+  const wethBalanceBeforeSwap = await getL2BalanceOf(aztecRpcClient, owner.address, wethL2Contract);
+  const daiBalanceBeforeSwap = await getL2BalanceOf(aztecRpcClient, owner.address, daiL2Contract);
 
   // 4. Send L2 to L1 message to withdraw funds and another message to swap assets.
   logger('Send L2 tx to withdraw WETH to uniswap portal and send message to swap assets on L1');
@@ -263,28 +243,25 @@ async function main() {
     .swap(
       selector,
       wethL2Contract.address.toField(),
-      wethTokenPortalAddress.toField(),
       wethAmountToBridge,
       new Fr(3000),
       daiL2Contract.address.toField(),
-      daiTokenPortalAddress.toField(),
       new Fr(minimumOutputAmount),
-      ownerPub,
-      owner,
+      owner.address,
+      owner.address,
       secretHash,
       new Fr(2 ** 32 - 1),
       ethAccount.toField(),
-      uniswapPortalAddress,
       ethAccount.toField(),
     )
-    .send({ from: owner });
-  await withdrawTx.isMined(0, 0.5);
+    .send({ origin: owner.address });
+  await withdrawTx.isMined({ interval: 0.5 });
   const withdrawReceipt = await withdrawTx.getReceipt();
   // expect(withdrawReceipt.status).toBe(TxStatus.MINED);
   logger(`Withdraw receipt status: ${withdrawReceipt.status} should be ${TxStatus.MINED}`);
 
-  // check weth balance of owner on L2 (we first briedged `wethAmountToBridge` into L2 and now withdrew it!)
-  await logExpectedBalanceOnL2(aztecRpcClient, owner, INITIAL_BALANCE - transferAmount, wethL2Contract);
+  // check weth balance of owner on L2 (we first bridged `wethAmountToBridge` into L2 and now withdrew it!)
+  await logExpectedBalanceOnL2(aztecRpcClient, owner.address, INITIAL_BALANCE - transferAmount, wethL2Contract);
 
   // 5. Consume L2 to L1 message by calling uniswapPortal.swap()
   logger('Execute withdraw and swap on the uniswapPortal!');
@@ -296,7 +273,7 @@ async function main() {
     3000,
     daiTokenPortalAddress.toString(),
     minimumOutputAmount,
-    owner.toString(),
+    owner.address.toString(),
     secretString,
     deadline,
     ethAccount.toString(),
@@ -321,22 +298,27 @@ async function main() {
   // Wait for the archiver to process the message
   await delay(5000);
   // send a transfer tx to force through rollup with the message included
-  await transferWethOnL2(aztecRpcClient, wethL2Contract, owner, receiver, transferAmount);
+  await transferWethOnL2(aztecRpcClient, wethL2Contract, owner.address, receiver.address, transferAmount);
 
   // 6. claim dai on L2
   logger('Consuming messages to mint dai on L2');
   // Call the mint tokens function on the noir contract
   const daiMintTx = daiL2Contract.methods
-    .mint(daiAmountToBridge, ownerPub, owner, depositDaiMessageKey, secret, ethAccount.toField())
-    .send({ from: owner });
-  await daiMintTx.isMined(0, 0.5);
+    .mint(daiAmountToBridge, owner.address, depositDaiMessageKey, secret, ethAccount.toField())
+    .send({ origin: owner.address });
+  await daiMintTx.isMined({ interval: 0.5 });
   const daiMintTxReceipt = await daiMintTx.getReceipt();
   // expect(daiMintTxReceipt.status).toBe(TxStatus.MINED);
   logger(`DAI mint TX status: ${daiMintTxReceipt.status} should be ${TxStatus.MINED}`);
-  await logExpectedBalanceOnL2(aztecRpcClient, owner, INITIAL_BALANCE + BigInt(daiAmountToBridge), daiL2Contract);
+  await logExpectedBalanceOnL2(
+    aztecRpcClient,
+    owner.address,
+    INITIAL_BALANCE + BigInt(daiAmountToBridge),
+    daiL2Contract,
+  );
 
-  const wethBalanceAfterSwap = await getL2BalanceOf(aztecRpcClient, owner, wethL2Contract);
-  const daiBalanceAfterSwap = await getL2BalanceOf(aztecRpcClient, owner, daiL2Contract);
+  const wethBalanceAfterSwap = await getL2BalanceOf(aztecRpcClient, owner.address, wethL2Contract);
+  const daiBalanceAfterSwap = await getL2BalanceOf(aztecRpcClient, owner.address, daiL2Contract);
 
   logger('WETH balance before swap: ', wethBalanceBeforeSwap.toString());
   logger('DAI balance before swap  : ', daiBalanceBeforeSwap.toString());
@@ -347,7 +329,7 @@ async function main() {
 
 main()
   .then(() => {
-    logger('Finished running successfuly.');
+    logger('Finished running successfully.');
     process.exit(0);
   })
   .catch(err => {

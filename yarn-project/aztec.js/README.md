@@ -23,10 +23,10 @@ console.log(`Contract address: ${receipt.contractAddress}`);
 ```typescript
 import { Contract } from '@aztec/aztec.js';
 
-const contract = new Contract(contractAddress, contractAbi, aztecRpcServer);
+const contract = await Contract.at(contractAddress, contractAbi, aztecRpcServer);
 const tx = contract.methods
     .transfer(amount, recipientAddress))
-    .send({ from: senderAddress });
+    .send({ origin: senderAddress });
 await tx.isMined();
 console.log(`Transferred ${amount} to ${recipientAddress}!`);
 ```
@@ -36,8 +36,8 @@ console.log(`Transferred ${amount} to ${recipientAddress}!`);
 ```typescript
 import { Contract } from '@aztec/aztec.js';
 
-const contract = new Contract(contractAddress, contractAbi, aztecRpcServer);
-const [balance] = contract.methods
+const contract = await Contract.at(contractAddress, contractAbi, aztecRpcServer);
+const balance = contract.methods
     .getBalance(accountPublicKey))
     .view({ from: accountAddress });
 console.log(`Account balance: ${balance}.`);

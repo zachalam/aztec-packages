@@ -1,17 +1,14 @@
 import { CallContext, FunctionData } from '@aztec/circuits.js';
-import { FunctionAbi } from '@aztec/foundation/abi';
+import { DecodedReturn, FunctionAbi, decodeReturnValues } from '@aztec/foundation/abi';
 import { AztecAddress } from '@aztec/foundation/aztec-address';
-import { Coordinate, Fr, Point } from '@aztec/foundation/fields';
+import { Fr } from '@aztec/foundation/fields';
 import { createDebugLogger } from '@aztec/foundation/log';
-import { decodeReturnValues } from '../abi_coder/decoder.js';
-import { extractReturnWitness } from '../acvm/deserialize.js';
+import { AztecNode } from '@aztec/types';
+
+import { extractReturnWitness, frToAztecAddress } from '../acvm/deserialize.js';
 import { ACVMField, ZERO_ACVM_FIELD, acvm, fromACVMField, toACVMField, toACVMWitness } from '../acvm/index.js';
 import { ClientTxExecutionContext } from './client_execution_context.js';
-import { fieldsToFormattedStr } from './debug.js';
-
-const notAvailable = () => {
-  return Promise.reject(new Error(`Not available for unconstrained function execution`));
-};
+import { oracleDebugCallToFormattedStr } from './debug.js';
 
 /**
  * The unconstrained function execution class.
@@ -30,51 +27,67 @@ export class UnconstrainedFunctionExecution {
 
   /**
    * Executes the unconstrained function.
+   * @param aztecNode - The aztec node.
    * @returns The return values of the executed function.
    */
-  public async run(): Promise<any[]> {
+  public async run(aztecNode?: AztecNode): Promise<DecodedReturn> {
     this.log(
       `Executing unconstrained function ${this.contractAddress.toShortString()}:${this.functionData.functionSelectorBuffer.toString(
         'hex',
       )}`,
     );
 
-    const acir = Buffer.from(this.abi.bytecode, 'hex');
+    const acir = Buffer.from(this.abi.bytecode, 'base64');
     const initialWitness = toACVMWitness(1, this.args);
 
     const { partialWitness } = await acvm(acir, initialWitness, {
-      getSecretKey: async ([ownerX, ownerY]: ACVMField[]) => [
-        toACVMField(
-          await this.context.db.getSecretKey(
-            this.contractAddress,
-            Point.fromCoordinates(
-              Coordinate.fromField(fromACVMField(ownerX)),
-              Coordinate.fromField(fromACVMField(ownerY)),
-            ),
-          ),
-        ),
-      ],
-      getNotes: (fields: ACVMField[]) => this.context.getNotes(this.contractAddress, fields),
-      getRandomField: () => Promise.resolve([toACVMField(Fr.random())]),
-      debugLog: (fields: ACVMField[]) => {
-        this.log(fieldsToFormattedStr(fields));
-        return Promise.resolve([ZERO_ACVM_FIELD]);
+      getSecretKey: ([ownerX], [ownerY]) => this.context.getSecretKey(this.contractAddress, ownerX, ownerY),
+      getPublicKey: async ([acvmAddress]) => {
+        const address = frToAztecAddress(fromACVMField(acvmAddress));
+        const { publicKey, partialAddress } = await this.context.db.getCompleteAddress(address);
+        return [publicKey.x, publicKey.y, partialAddress].map(toACVMField);
       },
-      getL1ToL2Message: ([msgKey]: ACVMField[]) => this.context.getL1ToL2Message(fromACVMField(msgKey)),
-      getCommitment: ([commitment]: ACVMField[]) => this.context.getCommitment(this.contractAddress, commitment),
-      packArguments: notAvailable,
-      enqueuePublicFunctionCall: notAvailable,
-      notifyCreatedNote: notAvailable,
-      notifyNullifiedNote: notAvailable,
-      callPrivateFunction: notAvailable,
-      callPublicFunction: notAvailable,
-      storageRead: notAvailable,
-      storageWrite: notAvailable,
-      createCommitment: notAvailable,
-      createL2ToL1Message: notAvailable,
-      createNullifier: notAvailable,
-      emitEncryptedLog: notAvailable,
-      emitUnencryptedLog: notAvailable,
+      getNotes: ([slot], sortBy, sortOrder, [limit], [offset], [returnSize]) =>
+        this.context.getNotes(this.contractAddress, slot, sortBy, sortOrder, +limit, +offset, +returnSize),
+      getRandomField: () => Promise.resolve(toACVMField(Fr.random())),
+      debugLog: (...params) => {
+        this.log(oracleDebugCallToFormattedStr(params));
+        return Promise.resolve(ZERO_ACVM_FIELD);
+      },
+      getL1ToL2Message: ([msgKey]) => this.context.getL1ToL2Message(fromACVMField(msgKey)),
+      getCommitment: ([commitment]) => this.context.getCommitment(this.contractAddress, commitment),
+      storageRead: async ([slot], [numberOfElements]) => {
+        if (!aztecNode) {
+          const errMsg = `Aztec node is undefined, cannot read storage`;
+          this.log(errMsg);
+          throw new Error(errMsg);
+        }
+
+        const makeLogMsg = (slot: bigint, value: string) =>
+          `Oracle storage read: slot=${slot.toString()} value=${value}`;
+
+        const startStorageSlot = fromACVMField(slot);
+        const values = [];
+        for (let i = 0; i < Number(numberOfElements); i++) {
+          const storageSlot = startStorageSlot.value + BigInt(i);
+          const value = await aztecNode.getPublicStorageAt(this.contractAddress, storageSlot);
+          if (value === undefined) {
+            const logMsg = makeLogMsg(storageSlot, 'undefined');
+            this.log(logMsg);
+            throw new Error(logMsg);
+          }
+          const frValue = Fr.fromBuffer(value);
+          const logMsg = makeLogMsg(storageSlot, frValue.toString());
+          this.log(logMsg);
+          values.push(frValue);
+        }
+        return values.map(v => toACVMField(v));
+      },
+      getPortalContractAddress: async ([aztecAddress]) => {
+        const contractAddress = AztecAddress.fromString(aztecAddress);
+        const portalContactAddress = await this.context.db.getPortalContractAddress(contractAddress);
+        return Promise.resolve(toACVMField(portalContactAddress));
+      },
     });
 
     const returnValues: ACVMField[] = extractReturnWitness(acir, partialWitness);

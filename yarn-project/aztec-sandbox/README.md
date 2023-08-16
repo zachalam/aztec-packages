@@ -42,7 +42,7 @@ Before running locally you'll need to:
 
 From the `aztec-sandbox` directory, you can run the two existing examples:
 
-- Deployment, mint and transfer on an Aztec ZK Token
+- Deployment, mint and transfer on an Aztec Private Token
   - `yarn run:example:token`
 - An L1 / L2 uniswap token trade.
   - `yarn run:example:uniswap`
@@ -50,5 +50,5 @@ From the `aztec-sandbox` directory, you can run the two existing examples:
 
 ## Publishing
 
-This package is set-up to be published on dockerhub by CI whenever there's a merge on `master` branch.
-It's published under the tag `aztecprotocol/aztec-sandbox:master`.
+This package is set-up to be published on dockerhub by CI whenever there's a tagged release on `master` branch.
+It's published under the tags `aztecprotocol/aztec-sandbox:latest` & `aztecprotocol/aztec-sandbox:<version-tag>`.

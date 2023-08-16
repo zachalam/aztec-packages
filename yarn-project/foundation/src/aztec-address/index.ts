@@ -66,6 +66,16 @@ export class AztecAddress {
   }
 
   /**
+   * Creates an AztecAddress from a bigint.
+   * The provided value must be within the range of a field.
+   * @param address - The bigint representation of the address.
+   * @returns An AztecAddress instance.
+   */
+  static fromBigInt(address: bigint) {
+    return new AztecAddress(toBufferBE(address, AztecAddress.SIZE_IN_BYTES));
+  }
+
+  /**
    * Converts the AztecAddress instance into a Buffer.
    * This method should be used when encoding the address for storage, transmission or serialization purposes.
    *
@@ -97,6 +107,15 @@ export class AztecAddress {
   }
 
   /**
+   * Returns this address from a Field element.
+   * @param field - The Field element to convert.
+   * @returns An Address Object from a Field element with the same value.
+   */
+  static fromField(field: Fr): AztecAddress {
+    return new AztecAddress(toBufferBE(field.value, AztecAddress.SIZE_IN_BYTES));
+  }
+
+  /**
    * Returns this address as a field element.
    * @returns A field element with the same value as the address.
    */
@@ -105,14 +124,22 @@ export class AztecAddress {
   }
 
   /**
+   * Returns this address as a bigint. Useful for creating maps indexed by addresses.
+   * @returns A bigint with the same value as the address.
+   */
+  toBigInt() {
+    return toBigIntBE(this.buffer);
+  }
+
+  /**
    * Determines if this AztecAddress instance is equal to the given AztecAddress instance.
    * Equality is based on the content of their respective buffers.
    *
-   * @param rhs - The AztecAddress instance to compare against.
+   * @param other - The AztecAddress instance to compare against.
    * @returns True if the buffers of both instances are equal, false otherwise.
    */
-  equals(rhs: AztecAddress) {
-    return this.buffer.equals(rhs.buffer);
+  equals(other: AztecAddress) {
+    return this.buffer.equals(other.buffer);
   }
 
   /**

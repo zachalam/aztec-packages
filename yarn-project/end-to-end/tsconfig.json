@@ -7,13 +7,25 @@
   },
   "references": [
     {
+      "path": "../archiver"
+    },
+    {
       "path": "../aztec-node"
+    },
+    {
+      "path": "../aztec-rpc"
+    },
+    {
+      "path": "../aztec-sandbox"
     },
     {
       "path": "../aztec.js"
     },
     {
       "path": "../circuits.js"
+    },
+    {
+      "path": "../aztec-cli"
     },
     {
       "path": "../ethereum"
@@ -32,6 +44,9 @@
     },
     {
       "path": "../sequencer-client"
+    },
+    {
+      "path": "../types"
     },
     {
       "path": "../world-state"

@@ -3,9 +3,10 @@
 //  This takes a {foo(): T} and makes {foo(): Promise<T>}
 //  while avoiding Promise of Promise.
 import { RemoteObject } from 'comlink';
+
 import { createDebugLogger } from '../../log/index.js';
 import { retry } from '../../retry/index.js';
-import { ClassConverter, ClassConverterInput } from '../class_converter.js';
+import { ClassConverter, JsonClassConverterInput, StringClassConverterInput } from '../class_converter.js';
 import { JsonStringify, convertFromJsonObj, convertToJsonObj } from '../convert.js';
 
 export { JsonStringify } from '../convert.js';
@@ -40,11 +41,10 @@ export async function defaultFetch(host: string, rpcMethod: string, body: any, u
     throw new Error(resp.statusText);
   }
 
-  const text = await resp.text();
   try {
-    return JSON.parse(text);
+    return await resp.json();
   } catch (err) {
-    throw new Error(`Failed to parse body as JSON: ${text}`);
+    throw new Error(`Failed to parse body as JSON: ${resp.text()}`);
   }
 }
 
@@ -61,8 +61,8 @@ export async function mustSucceedFetch(host: string, rpcMethod: string, body: an
  */
 export function createJsonRpcClient<T extends object>(
   host: string,
-  stringClassMap: ClassConverterInput,
-  objectClassMap: ClassConverterInput,
+  stringClassMap: StringClassConverterInput,
+  objectClassMap: JsonClassConverterInput,
   useApiEndpoints: boolean,
   fetch = defaultFetch,
 ) {
@@ -84,7 +84,7 @@ export function createJsonRpcClient<T extends object>(
     if ([null, undefined, 'null', 'undefined'].includes(res.result)) {
       return;
     }
-    return convertFromJsonObj(classConverter, JSON.parse(res.result));
+    return convertFromJsonObj(classConverter, res.result);
   };
 
   // Intercept any RPC methods with a proxy
@@ -92,12 +92,13 @@ export function createJsonRpcClient<T extends object>(
   return new Proxy(
     {},
     {
-      get:
-        (_, rpcMethod: string) =>
-        (...params: any[]) => {
+      get: (target, rpcMethod: string) => {
+        if (['then', 'catch'].includes(rpcMethod)) return Reflect.get(target, rpcMethod);
+        return (...params: any[]) => {
           debug(`JsonRpcClient.constructor`, 'proxy', rpcMethod, '<-', params);
           return request(rpcMethod, params);
-        },
+        };
+      },
     },
   ) as RemoteObject<T>;
 }

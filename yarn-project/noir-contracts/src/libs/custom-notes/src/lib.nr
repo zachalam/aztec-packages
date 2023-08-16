@@ -1,1 +1,0 @@
-mod transparent_note;

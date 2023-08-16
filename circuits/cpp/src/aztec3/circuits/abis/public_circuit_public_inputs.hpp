@@ -5,10 +5,12 @@
 #include "contract_storage_update_request.hpp"
 #include "../../constants.hpp"
 
+#include "aztec3/circuits/abis/historic_block_data.hpp"
 #include "aztec3/utils/msgpack_derived_output.hpp"
 #include "aztec3/utils/types/circuit_types.hpp"
 #include "aztec3/utils/types/native_types.hpp"
 
+#include "barretenberg/common/throw_or_abort.hpp"
 #include <barretenberg/barretenberg.hpp>
 
 namespace aztec3::circuits::abis {
@@ -26,14 +28,14 @@ template <typename NCT> struct PublicCircuitPublicInputs {
     fr args_hash = 0;
     std::array<fr, RETURN_VALUES_LENGTH> return_values{};
 
-    std::array<ContractStorageUpdateRequest<NCT>, KERNEL_PUBLIC_DATA_UPDATE_REQUESTS_LENGTH>
+    std::array<ContractStorageUpdateRequest<NCT>, MAX_PUBLIC_DATA_UPDATE_REQUESTS_PER_CALL>
         contract_storage_update_requests{};
-    std::array<ContractStorageRead<NCT>, KERNEL_PUBLIC_DATA_READS_LENGTH> contract_storage_reads{};
+    std::array<ContractStorageRead<NCT>, MAX_PUBLIC_DATA_READS_PER_CALL> contract_storage_reads{};
 
-    std::array<fr, PUBLIC_CALL_STACK_LENGTH> public_call_stack{};
-    std::array<fr, NEW_COMMITMENTS_LENGTH> new_commitments{};
-    std::array<fr, NEW_NULLIFIERS_LENGTH> new_nullifiers{};
-    std::array<fr, NEW_L2_TO_L1_MSGS_LENGTH> new_l2_to_l1_msgs{};
+    std::array<fr, MAX_PUBLIC_CALL_STACK_LENGTH_PER_CALL> public_call_stack{};
+    std::array<fr, MAX_NEW_COMMITMENTS_PER_CALL> new_commitments{};
+    std::array<fr, MAX_NEW_NULLIFIERS_PER_CALL> new_nullifiers{};
+    std::array<fr, MAX_NEW_L2_TO_L1_MSGS_PER_CALL> new_l2_to_l1_msgs{};
 
     std::array<fr, NUM_FIELDS_PER_SHA256> unencrypted_logs_hash{};
 
@@ -41,7 +43,7 @@ template <typename NCT> struct PublicCircuitPublicInputs {
     // variable-length data.
     fr unencrypted_log_preimages_length = 0;
 
-    fr historic_public_data_tree_root = 0;
+    HistoricBlockData<NCT> historic_block_data{};
 
     address prover_address;
 
@@ -57,7 +59,7 @@ template <typename NCT> struct PublicCircuitPublicInputs {
                    new_l2_to_l1_msgs,
                    unencrypted_logs_hash,
                    unencrypted_log_preimages_length,
-                   historic_public_data_tree_root,
+                   historic_block_data,
                    prover_address);
 
     boolean operator==(PublicCircuitPublicInputs<NCT> const& other) const
@@ -90,7 +92,7 @@ template <typename NCT> struct PublicCircuitPublicInputs {
             .unencrypted_logs_hash = to_ct(unencrypted_logs_hash),
             .unencrypted_log_preimages_length = to_ct(unencrypted_log_preimages_length),
 
-            .historic_public_data_tree_root = to_ct(historic_public_data_tree_root),
+            .historic_block_data = to_ct(historic_block_data),
 
             .prover_address = to_ct(prover_address),
         };
@@ -104,9 +106,7 @@ template <typename NCT> struct PublicCircuitPublicInputs {
 
         std::vector<fr> inputs;
 
-        // NOTE: we omit the call_context from this hash function, and instead hash it within CallStackItem, for
-        // efficiency, so that fewer hashes are needed to 'unwrap' the call_context in the kernel circuit.
-        // inputs.push_back(call_context.hash());
+        inputs.push_back(call_context.hash());
 
         inputs.push_back(args_hash);
         spread_arr_into_vec(return_values, inputs);
@@ -120,12 +120,15 @@ template <typename NCT> struct PublicCircuitPublicInputs {
         spread_arr_into_vec(new_l2_to_l1_msgs, inputs);
 
         spread_arr_into_vec(unencrypted_logs_hash, inputs);
-
         inputs.push_back(unencrypted_log_preimages_length);
 
-        inputs.push_back(historic_public_data_tree_root);
+        spread_arr_into_vec(historic_block_data.to_array(), inputs);
+        inputs.push_back(prover_address);
 
-        return NCT::compress(inputs, GeneratorIndex::PUBLIC_CIRCUIT_PUBLIC_INPUTS);
+        if (inputs.size() != PUBLIC_CIRCUIT_PUBLIC_INPUTS_HASH_INPUT_LENGTH) {
+            throw_or_abort("Incorrect number of input fields when hashing PublicCircuitPublicInputs");
+        }
+        return NCT::hash(inputs, GeneratorIndex::PUBLIC_CIRCUIT_PUBLIC_INPUTS);
     }
 
     template <size_t SIZE> void spread_arr_into_vec(std::array<fr, SIZE> const& arr, std::vector<fr>& vec) const
@@ -135,63 +138,4 @@ template <typename NCT> struct PublicCircuitPublicInputs {
     }
 };  // namespace aztec3::circuits::abis
 
-template <typename NCT> void read(uint8_t const*& it, PublicCircuitPublicInputs<NCT>& public_circuit_public_inputs)
-{
-    using serialize::read;
-
-    PublicCircuitPublicInputs<NCT>& pis = public_circuit_public_inputs;
-    read(it, pis.call_context);
-    read(it, pis.args_hash);
-    read(it, pis.return_values);
-
-    read(it, pis.contract_storage_update_requests);
-    read(it, pis.contract_storage_reads);
-
-    read(it, pis.public_call_stack);
-    read(it, pis.new_commitments);
-    read(it, pis.new_nullifiers);
-    read(it, pis.new_l2_to_l1_msgs);
-
-    read(it, pis.unencrypted_logs_hash);
-    read(it, pis.unencrypted_log_preimages_length);
-
-    read(it, pis.historic_public_data_tree_root);
-
-    read(it, pis.prover_address);
-};
-
-template <typename NCT>
-void write(std::vector<uint8_t>& buf, PublicCircuitPublicInputs<NCT> const& public_circuit_public_inputs)
-{
-    using serialize::write;
-
-    PublicCircuitPublicInputs<NCT> const& pis = public_circuit_public_inputs;
-
-    write(buf, pis.call_context);
-    write(buf, pis.args_hash);
-    write(buf, pis.return_values);
-
-    write(buf, pis.contract_storage_update_requests);
-    write(buf, pis.contract_storage_reads);
-
-    write(buf, pis.public_call_stack);
-    write(buf, pis.new_commitments);
-    write(buf, pis.new_nullifiers);
-    write(buf, pis.new_l2_to_l1_msgs);
-
-    write(buf, pis.unencrypted_logs_hash);
-    write(buf, pis.unencrypted_log_preimages_length);
-
-    write(buf, pis.historic_public_data_tree_root);
-
-    write(buf, pis.prover_address);
-};
-
-template <typename NCT>
-std::ostream& operator<<(std::ostream& os, PublicCircuitPublicInputs<NCT> const& public_circuit_public_inputs)
-
-{
-    utils::msgpack_derived_output(os, public_circuit_public_inputs);
-    return os;
-}
 }  // namespace aztec3::circuits::abis

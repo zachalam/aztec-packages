@@ -1,19 +1,19 @@
 import { AztecNodeConfig, AztecNodeService } from '@aztec/aztec-node';
 import {
-  AztecAddress,
   AztecRPCServer,
-  ContractDeployer,
-  Fr,
-  SentTx,
-  TxStatus,
+  ConstantKeyPair,
   createAztecRPCServer,
-} from '@aztec/aztec.js';
+  getConfigEnvVars as getRpcConfig,
+} from '@aztec/aztec-rpc';
+import { ContractDeployer, SentTx, isContractDeployed } from '@aztec/aztec.js';
+import { AztecAddress, CompleteAddress, Fr, PublicKey, getContractDeploymentInfo } from '@aztec/circuits.js';
+import { Grumpkin } from '@aztec/circuits.js/barretenberg';
 import { DebugLogger } from '@aztec/foundation/log';
-import { TestContractAbi } from '@aztec/noir-contracts/examples';
+import { TestContractAbi } from '@aztec/noir-contracts/artifacts';
 import { BootstrapNode, P2PConfig, createLibP2PPeerId, exportLibP2PPeerIdToString } from '@aztec/p2p';
+import { AztecRPC, TxStatus } from '@aztec/types';
 
-import { setup } from './utils.js';
-import { randomBytes } from 'crypto';
+import { setup } from './fixtures/utils.js';
 
 const NUM_NODES = 4;
 const NUM_TXS_PER_BLOCK = 4;
@@ -28,8 +28,8 @@ interface NodeContext {
 }
 
 describe('e2e_p2p_network', () => {
-  let aztecNode: AztecNodeService;
-  let aztecRpcServer: AztecRPCServer;
+  let aztecNode: AztecNodeService | undefined;
+  let aztecRpcServer: AztecRPC;
   let config: AztecNodeConfig;
   let logger: DebugLogger;
 
@@ -38,8 +38,10 @@ describe('e2e_p2p_network', () => {
   }, 100_000);
 
   afterEach(async () => {
-    await aztecNode.stop();
-    await aztecRpcServer.stop();
+    await aztecNode?.stop();
+    if (aztecRpcServer instanceof AztecRPCServer) {
+      await aztecRpcServer?.stop();
+    }
   });
 
   it('should rollup txs from all peers', async () => {
@@ -62,14 +64,14 @@ describe('e2e_p2p_network', () => {
     // now ensure that all txs were successfully mined
     for (const context of contexts) {
       for (const tx of context.txs) {
-        const isMined = await tx.isMined(0, 0.1);
+        const isMined = await tx.isMined({ interval: 0.1 });
         const receiptAfterMined = await tx.getReceipt();
 
         expect(isMined).toBe(true);
         expect(receiptAfterMined.status).toBe(TxStatus.MINED);
         const contractAddress = receiptAfterMined.contractAddress!;
-        expect(await context.rpcServer.isContractDeployed(contractAddress)).toBe(true);
-        expect(await context.rpcServer.isContractDeployed(AztecAddress.random())).toBe(false);
+        expect(await isContractDeployed(context.rpcServer, contractAddress)).toBeTruthy();
+        expect(await isContractDeployed(context.rpcServer, AztecAddress.random())).toBeFalsy();
       }
     }
 
@@ -96,7 +98,7 @@ describe('e2e_p2p_network', () => {
       maxPeerCount: 100,
 
       // TODO: the following config options are not applicable to bootstrap nodes
-      checkInterval: 1000,
+      p2pBlockCheckIntervalMS: 1000,
       l2QueueSize: 1,
       transactionProtocol: '',
       bootstrapNodes: [''],
@@ -123,18 +125,25 @@ describe('e2e_p2p_network', () => {
   };
 
   // submits a set of transactions to the provided aztec rpc server
-  const submitTxsTo = async (aztecRpcServer: AztecRPCServer, account: AztecAddress, numTxs: number) => {
+  const submitTxsTo = async (
+    aztecRpcServer: AztecRPCServer,
+    account: AztecAddress,
+    numTxs: number,
+    publicKey: PublicKey,
+  ) => {
     const txs: SentTx[] = [];
     for (let i = 0; i < numTxs; i++) {
-      const deployer = new ContractDeployer(TestContractAbi, aztecRpcServer);
-      const tx = deployer.deploy().send({ from: account, contractAddressSalt: Fr.random() });
+      const salt = Fr.random();
+      const origin = (await getContractDeploymentInfo(TestContractAbi, [], salt, publicKey)).completeAddress.address;
+      const deployer = new ContractDeployer(TestContractAbi, aztecRpcServer, publicKey);
+      const tx = deployer.deploy().send({ contractAddressSalt: salt });
       logger(`Tx sent with hash ${await tx.getTxHash()}`);
       const receipt = await tx.getReceipt();
       expect(receipt).toEqual(
         expect.objectContaining({
-          from: account,
           status: TxStatus.PENDING,
           error: '',
+          contractAddress: origin,
         }),
       );
       logger(`Receipt received and expecting contract deployment at ${receipt.contractAddress}`);
@@ -148,13 +157,17 @@ describe('e2e_p2p_network', () => {
     node: AztecNodeService,
     numTxs: number,
   ): Promise<NodeContext> => {
-    const aztecRpcServer = await createAztecRPCServer(node);
-    const account = await aztecRpcServer.addAccount(randomBytes(32), AztecAddress.random(), Fr.random());
+    const rpcConfig = getRpcConfig();
+    const aztecRpcServer = await createAztecRPCServer(node, rpcConfig, {}, true);
 
-    const txs = await submitTxsTo(aztecRpcServer, account, numTxs);
+    const keyPair = ConstantKeyPair.random(await Grumpkin.new());
+    const completeAddress = await CompleteAddress.fromPrivateKey(await keyPair.getPrivateKey());
+    await aztecRpcServer.registerAccount(await keyPair.getPrivateKey(), completeAddress);
+
+    const txs = await submitTxsTo(aztecRpcServer, completeAddress.address, numTxs, completeAddress.publicKey);
     return {
       txs,
-      account,
+      account: completeAddress.address,
       rpcServer: aztecRpcServer,
       node,
     };

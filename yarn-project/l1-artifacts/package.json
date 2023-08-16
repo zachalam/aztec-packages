@@ -1,12 +1,12 @@
 {
   "name": "@aztec/l1-artifacts",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "exports": {
     ".": "./dest/index.js"
   },
-  "typedoc": {
-    "entryPoint": "./generated/index.ts",
+  "typedocOptions": {
+    "entryPoints": "./generated/index.ts",
     "displayName": "L1 Contracts",
     "tsconfig": "./tsconfig.json"
   },

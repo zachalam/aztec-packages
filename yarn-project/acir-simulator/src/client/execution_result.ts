@@ -1,6 +1,8 @@
-import { PrivateCallStackItem, PublicCallRequest } from '@aztec/circuits.js';
+import { PrivateCallStackItem, PublicCallRequest, ReadRequestMembershipWitness } from '@aztec/circuits.js';
+import { DecodedReturn } from '@aztec/foundation/abi';
 import { Fr } from '@aztec/foundation/fields';
 import { FunctionL2Logs } from '@aztec/types';
+
 import { ACVMField } from '../acvm/index.js';
 
 /**
@@ -49,13 +51,13 @@ export interface ExecutionResult {
   // Needed for the verifier (kernel)
   /** The call stack item. */
   callStackItem: PrivateCallStackItem;
-  /** The indices (in private data tree) for commitments corresponding to read requests. */
-  readRequestCommitmentIndices: bigint[];
+  /** The partially filled-in read request membership witnesses for commitments being read. */
+  readRequestPartialWitnesses: ReadRequestMembershipWitness[];
   // Needed for the user
   /** The preimages of the executed function. */
   preimages: ExecutionPreimages;
   /** The decoded return values of the executed function. */
-  returnValues: any[];
+  returnValues: DecodedReturn;
   /** The nested executions. */
   nestedExecutions: this[];
   /** Enqueued public function execution requests to be picked up by the sequencer. */
@@ -78,7 +80,8 @@ export interface ExecutionResult {
  * @returns All encrypted logs.
  */
 export function collectEncryptedLogs(execResult: ExecutionResult): FunctionL2Logs[] {
-  return [execResult.encryptedLogs, ...execResult.nestedExecutions.flatMap(collectEncryptedLogs)];
+  // without the .reverse(), the logs will be in a queue like fashion which is wrong as the kernel processes it like a stack.
+  return [execResult.encryptedLogs, ...[...execResult.nestedExecutions].reverse().flatMap(collectEncryptedLogs)];
 }
 
 /**
@@ -87,7 +90,8 @@ export function collectEncryptedLogs(execResult: ExecutionResult): FunctionL2Log
  * @returns All unencrypted logs.
  */
 export function collectUnencryptedLogs(execResult: ExecutionResult): FunctionL2Logs[] {
-  return [execResult.unencryptedLogs, ...execResult.nestedExecutions.flatMap(collectUnencryptedLogs)];
+  // without the .reverse(), the logs will be in a queue like fashion which is wrong as the kernel processes it like a stack.
+  return [execResult.unencryptedLogs, ...[...execResult.nestedExecutions].reverse().flatMap(collectUnencryptedLogs)];
 }
 
 /**
@@ -96,8 +100,9 @@ export function collectUnencryptedLogs(execResult: ExecutionResult): FunctionL2L
  * @returns All enqueued public function calls.
  */
 export function collectEnqueuedPublicFunctionCalls(execResult: ExecutionResult): PublicCallRequest[] {
+  // without the .reverse(), the logs will be in a queue like fashion which is wrong as the kernel processes it like a stack.
   return [
     ...execResult.enqueuedPublicFunctionCalls,
-    ...execResult.nestedExecutions.flatMap(collectEnqueuedPublicFunctionCalls),
+    ...[...execResult.nestedExecutions].reverse().flatMap(collectEnqueuedPublicFunctionCalls),
   ];
 }

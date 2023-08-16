@@ -36,7 +36,7 @@ class private_kernel_tests : public ::testing::Test {
  * @note The choice of app circuit (currently 'deposit') is entirely arbitrary and can be replaced with any other valid
  * app circuit.
  */
-TEST_F(private_kernel_tests, basic)
+TEST_F(private_kernel_tests, circuit_basic)
 {
     NT::fr const& amount = 5;
     NT::fr const& asset_id = 1;
@@ -60,7 +60,7 @@ TEST_F(private_kernel_tests, basic)
 
     // Execute and prove the first kernel iteration
     Builder private_kernel_builder;
-    auto const& public_inputs = private_kernel_circuit(private_kernel_builder, private_inputs, true);
+    private_kernel_circuit(private_kernel_builder, private_inputs, true);
 
     // Check the private kernel circuit
     EXPECT_TRUE(private_kernel_builder.check_circuit());
@@ -93,7 +93,7 @@ TEST_F(private_kernel_tests, circuit_cbinds)
 
     // serialize expected public inputs for later comparison
     std::vector<uint8_t> expected_public_inputs_vec;
-    write(expected_public_inputs_vec, public_inputs);
+    serialize::write(expected_public_inputs_vec, public_inputs);
 
     //***************************************************************************
     // Now run the simulate/prove cbinds to make sure their outputs match
@@ -109,10 +109,10 @@ TEST_F(private_kernel_tests, circuit_cbinds)
     // info("Verification key size: ", vk_size);
 
     std::vector<uint8_t> signed_constructor_tx_request_vec;
-    write(signed_constructor_tx_request_vec, private_inputs.tx_request);
+    serialize::write(signed_constructor_tx_request_vec, private_inputs.tx_request);
 
     std::vector<uint8_t> private_constructor_call_vec;
-    write(private_constructor_call_vec, private_inputs.private_call);
+    serialize::write(private_constructor_call_vec, private_inputs.private_call);
 
     // uint8_t const* proof_data_buf = nullptr;
     uint8_t const* public_inputs_buf = nullptr;

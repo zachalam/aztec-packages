@@ -3,16 +3,15 @@ contract Parent {
     use dep::aztec::abi;
     use dep::aztec::abi::PrivateContextInputs;
     use dep::aztec::abi::PublicContextInputs;
-    use dep::aztec::context::Context;
-    use dep::aztec::oracle::public_call;
-    use dep::aztec::private_call_stack_item::PrivateCallStackItem;
-    use dep::aztec::public_call_stack_item::PublicCallStackItem;
-    use dep::aztec::public_call_stack_item::call_public_function;
+    use dep::aztec::context::{
+        PrivateContext,
+        PublicContext,
+    };
 
     fn constructor(
         inputs: PrivateContextInputs,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        Context::new(inputs, 0).finish()
+        PrivateContext::new(inputs, 0).finish()
     }
 
     // Private function to call another private function in the targetContract using the provided selector
@@ -21,31 +20,51 @@ contract Parent {
         targetContract: Field,
         targetSelector: Field,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut initialContext = Context::new(inputs, abi::hash_args([
+        let mut context = PrivateContext::new(inputs, abi::hash_args([
             targetContract,
             targetSelector,
         ]));
 
         // Call the target private function
-        let (callStackItem, mut context) = PrivateCallStackItem::call(targetContract, targetSelector, [0], initialContext);
+        let return_values = context.call_private_function(targetContract, targetSelector, [0]);
 
         // Copy the return value from the call to this function's return values
-        let result = callStackItem.public_inputs.return_values[0];
-        context.return_values = context.return_values.push(result);
+        let result = return_values[0];
+        context.return_values.push(result);
 
         // Return private circuit public inputs. All private functions need to return this as it is part of the input of the private kernel.
         context.finish()
     }
 
     // Public function to directly call another public function to the targetContract using the selector and value provided
-    open fn pubEntryPoint(_inputs: PublicContextInputs, targetContract: Field, targetSelector: Field, initValue: Field) -> pub Field {
-        call_public_function(targetContract, targetSelector, [initValue])[0]
+    open fn pubEntryPoint(
+        inputs: PublicContextInputs,
+        targetContract: Field,
+        targetSelector: Field,
+        initValue: Field
+    ) -> pub abi::PublicCircuitPublicInputs {
+        let mut context = PublicContext::new(inputs, abi::hash_args([targetContract, targetSelector, initValue]));
+
+        let return_values = context.call_public_function(targetContract, targetSelector, [initValue]);
+
+        context.return_values.push(return_values[0]);
+        context.finish()
     }
 
     // Same as pubEntryPoint, but calls the target contract twice, using the return value from the first invocation as the argument for the second.
-    open fn pubEntryPointTwice(_inputs: PublicContextInputs, targetContract: Field, targetSelector: Field, initValue: Field) -> pub Field {
-        let returnValue = call_public_function(targetContract, targetSelector, [initValue])[0];
-        call_public_function(targetContract, targetSelector, [returnValue])[0]
+    open fn pubEntryPointTwice(
+        inputs: PublicContextInputs,
+        targetContract: Field,
+        targetSelector: Field,
+        initValue: Field
+    ) -> pub abi::PublicCircuitPublicInputs {
+        let mut context = PublicContext::new(inputs, abi::hash_args([targetContract, targetSelector, initValue]));
+
+        let returnValue = context.call_public_function(targetContract, targetSelector, [initValue])[0];
+        let return_values = context.call_public_function(targetContract, targetSelector, [returnValue]);
+
+        context.return_values.push(return_values[0]);
+        context.finish()
     }
 
     // Private function to enqueue a call to the targetContract address using the selector and argument provided
@@ -55,13 +74,13 @@ contract Parent {
         targetSelector: Field,
         targetValue: Field,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut initialContext = Context::new(inputs, abi::hash_args([
+        let mut context = PrivateContext::new(inputs, abi::hash_args([
             targetContract,
             targetSelector,
             targetValue,
         ]));
 
-        let (_callStackItem, mut context) = PublicCallStackItem::call(targetContract, targetSelector, [targetValue], initialContext);
+        context.call_public_function(targetContract, targetSelector, [targetValue]);
 
         // Return private circuit public inputs. All private functions need to return this as it is part of the input of the private kernel.
         context.finish()
@@ -74,19 +93,19 @@ contract Parent {
         targetSelector: Field,
         targetValue: Field,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context0 = Context::new(inputs, abi::hash_args([
+        let mut context = PrivateContext::new(inputs, abi::hash_args([
             targetContract,
             targetSelector,
             targetValue,
         ]));
 
         // Enqueue the first public call
-        let (callStackItem1, context1) = PublicCallStackItem::call(targetContract, targetSelector, [targetValue], context0);
+        context.call_public_function(targetContract, targetSelector, [targetValue]);
         // Enqueue the second public call
-        let (_callStackItem2, context2) = PublicCallStackItem::call(targetContract, targetSelector, [callStackItem1.public_inputs.return_values[0]], context1);
+        context.call_public_function(targetContract, targetSelector, [targetValue]);
 
         // Return private circuit public inputs. All private functions need to return this as it is part of the input of the private kernel.
-        context2.finish()
+        context.finish()
     }
 
     // Private function to enqueue a call to the pubEntryPoint function of this same contract, passing the target arguments provided
@@ -96,18 +115,18 @@ contract Parent {
         targetSelector: Field,
         targetValue: Field,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut initialContext = Context::new(inputs, abi::hash_args([
+        let mut context = PrivateContext::new(inputs, abi::hash_args([
             targetContract,
             targetSelector,
             targetValue,
         ]));
 
         let pubEntryPointSelector = 3221316504;
-        let thisAddress = inputs.call_context.storage_contract_address;
-        let (_callStackItem1, mut context1) = PublicCallStackItem::call(thisAddress, pubEntryPointSelector, [targetContract, targetSelector, targetValue], initialContext);
+        let thisAddress = context.this_address();
+        let _void = context.call_public_function(thisAddress, pubEntryPointSelector, [targetContract, targetSelector, targetValue]);
 
         // Return private circuit public inputs. All private functions need to return this as it is part of the input of the private kernel.
-        context1.finish()
+        context.finish()
     }
 
     // Private function to enqueue two calls to the pubEntryPoint function of this same contract, passing the target arguments provided
@@ -117,20 +136,20 @@ contract Parent {
         targetSelector: Field,
         targetValue: Field,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut initialContext = Context::new(inputs, abi::hash_args([
+        let mut context = PrivateContext::new(inputs, abi::hash_args([
             targetContract,
             targetSelector,
             targetValue,
         ]));
 
         let pubEntryPointSelector = 3221316504;
-        let thisAddress = inputs.call_context.storage_contract_address;
+        let thisAddress = context.this_address();
         
-        let (_callStackItem1, mut context1) = PublicCallStackItem::call(thisAddress, pubEntryPointSelector, [targetContract, targetSelector, targetValue], initialContext);
+        context.call_public_function(thisAddress, pubEntryPointSelector, [targetContract, targetSelector, targetValue]);
 
-        let (_callStackItem2, mut context2) = PublicCallStackItem::call(thisAddress, pubEntryPointSelector, [targetContract, targetSelector, targetValue + 1], context1);
+        context.call_public_function(thisAddress, pubEntryPointSelector, [targetContract, targetSelector, targetValue + 1]);
 
         // Return private circuit public inputs. All private functions need to return this as it is part of the input of the private kernel.
-        context2.finish()
+        context.finish()
     }
 }

@@ -1,15 +1,17 @@
-import http from 'http';
-import { foundry } from 'viem/chains';
-import { http as httpViemTransport, createPublicClient, HDAccount } from 'viem';
-
-import { mnemonicToAccount } from 'viem/accounts';
-import { getHttpRpcServer } from '@aztec/aztec-rpc';
+import { AztecNodeConfig, AztecNodeService, getConfigEnvVars } from '@aztec/aztec-node';
+import { createAztecRPCServer, getConfigEnvVars as getRpcConfigEnvVars } from '@aztec/aztec-rpc';
+import { deployInitialSandboxAccounts } from '@aztec/aztec.js';
+import { PrivateKey } from '@aztec/circuits.js';
+import { deployL1Contracts } from '@aztec/ethereum';
 import { createDebugLogger } from '@aztec/foundation/log';
 import { retryUntil } from '@aztec/foundation/retry';
-import { AztecNodeConfig, getConfigEnvVars } from '@aztec/aztec-node';
-import { deployL1Contracts } from '@aztec/ethereum';
 
-import { createApiRouter } from './routes.js';
+import { HDAccount, createPublicClient, http as httpViemTransport } from 'viem';
+import { mnemonicToAccount } from 'viem/accounts';
+import { foundry } from 'viem/chains';
+
+import { startHttpRpcServer } from './server.js';
+import { github, splash } from './splash.js';
 
 const { SERVER_PORT = 8080, MNEMONIC = 'test test test test test test test test test test test junk' } = process.env;
 
@@ -37,7 +39,7 @@ async function waitThenDeploy(rpcUrl: string, hdAccount: HDAccount) {
       return chainId;
     },
     'isEthRpcReady',
-    30,
+    600,
     1,
   );
 
@@ -55,29 +57,50 @@ async function waitThenDeploy(rpcUrl: string, hdAccount: HDAccount) {
  */
 async function main() {
   const aztecNodeConfig: AztecNodeConfig = getConfigEnvVars();
+  const rpcConfig = getRpcConfigEnvVars();
   const hdAccount = mnemonicToAccount(MNEMONIC);
   const privKey = hdAccount.getHdKey().privateKey;
 
   const deployedL1Contracts = await waitThenDeploy(aztecNodeConfig.rpcUrl, hdAccount);
-  aztecNodeConfig.publisherPrivateKey = Buffer.from(privKey!);
+  aztecNodeConfig.publisherPrivateKey = new PrivateKey(Buffer.from(privKey!));
   aztecNodeConfig.rollupContract = deployedL1Contracts.rollupAddress;
   aztecNodeConfig.contractDeploymentEmitterContract = deployedL1Contracts.contractDeploymentEmitterAddress;
   aztecNodeConfig.inboxContract = deployedL1Contracts.inboxAddress;
 
-  const rpcServer = await getHttpRpcServer(aztecNodeConfig);
+  const aztecNode = await AztecNodeService.createAndSync(aztecNodeConfig);
+  const aztecRpcServer = await createAztecRPCServer(aztecNode, rpcConfig);
 
-  const app = rpcServer.getApp();
-  const apiRouter = createApiRouter(deployedL1Contracts);
-  app.use(apiRouter.routes());
-  app.use(apiRouter.allowedMethods());
+  logger('Deploying initial accounts...');
+  const accounts = await deployInitialSandboxAccounts(aztecRpcServer);
 
-  const httpServer = http.createServer(app.callback());
-  httpServer.listen(SERVER_PORT);
+  const shutdown = async () => {
+    logger('Shutting down...');
+    await aztecRpcServer.stop();
+    await aztecNode.stop();
+    process.exit(0);
+  };
+
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+
+  startHttpRpcServer(aztecRpcServer, deployedL1Contracts, SERVER_PORT);
+  logger.info(`Aztec JSON RPC listening on port ${SERVER_PORT}`);
+  const accountStrings = [`Initial Accounts:\n\n`];
+
+  const registeredAccounts = await aztecRpcServer.getAccounts();
+  for (const account of accounts) {
+    const completeAddress = await account.account.getCompleteAddress();
+    if (registeredAccounts.find(a => a.equals(completeAddress))) {
+      accountStrings.push(` Address: ${completeAddress.address.toString()}\n`);
+      accountStrings.push(` Partial Address: ${completeAddress.partialAddress.toString()}\n`);
+      accountStrings.push(` Private Key: ${account.privateKey.toString()}\n`);
+      accountStrings.push(` Public Key: ${completeAddress.publicKey.toString()}\n\n`);
+    }
+  }
+  logger.info(`${splash}\n${github}\n\n`.concat(...accountStrings));
 }
 
-main()
-  .then(() => logger(`Aztec JSON RPC listening on port ${SERVER_PORT}`))
-  .catch(err => {
-    logger(err);
-    process.exit(1);
-  });
+main().catch(err => {
+  logger.fatal(err);
+  process.exit(1);
+});

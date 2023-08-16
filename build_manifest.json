@@ -1,4 +1,79 @@
 {
+  "barretenberg-x86_64-linux-clang": {
+    "buildDir": "circuits/cpp/barretenberg/cpp",
+    "dockerfile": "dockerfiles/Dockerfile.x86_64-linux-clang",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/cpp/"
+    ],
+    "dependencies": []
+  },
+  "barretenberg-x86_64-linux-clang-assert": {
+    "buildDir": "circuits/cpp/barretenberg/cpp",
+    "dockerfile": "dockerfiles/Dockerfile.x86_64-linux-clang-assert",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/cpp/"
+    ],
+    "dependencies": []
+  },
+  "barretenberg-x86_64-linux-clang-fuzzing": {
+    "buildDir": "circuits/cpp/barretenberg/cpp",
+    "dockerfile": "dockerfiles/Dockerfile.x86_64-linux-clang-fuzzing",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/cpp/"
+    ],
+    "dependencies": []
+  },
+  "barretenberg-x86_64-linux-gcc": {
+    "buildDir": "circuits/cpp/barretenberg/cpp",
+    "dockerfile": "dockerfiles/Dockerfile.x86_64-linux-gcc",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/cpp/"
+    ],
+    "dependencies": []
+  },
+  "barretenberg-wasm-linux-clang": {
+    "buildDir": "circuits/cpp/barretenberg/cpp",
+    "dockerfile": "dockerfiles/Dockerfile.wasm-linux-clang",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/cpp/"
+    ],
+    "dependencies": []
+  },
+  "barretenberg-circuits-x86_64-linux-clang-builder-runner": {
+    "buildDir": "circuits/cpp/barretenberg/cpp",
+    "dockerfile": "dockerfiles/Dockerfile.circuits-x86_64-linux-clang-builder-runner",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/cpp/"
+    ],
+    "dependencies": []
+  },
+  "barretenberg-circuits-wasm-linux-clang-builder-runner": {
+    "buildDir": "circuits/cpp/barretenberg/cpp",
+    "dockerfile": "dockerfiles/Dockerfile.circuits-wasm-linux-clang-builder-runner",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/cpp/"
+    ],
+    "dependencies": []
+  },
+  "bb.js": {
+    "buildDir": "circuits/cpp/barretenberg/ts",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/ts/"
+    ],
+    "dependencies": [
+      "barretenberg-wasm-linux-clang"
+    ]
+  },
+  "barretenberg-acir-tests": {
+    "buildDir": "circuits/cpp/barretenberg/acir_tests",
+    "rebuildPatterns": [
+      "^circuits/cpp/barretenberg/acir_tests/"
+    ],
+    "dependencies": [
+      "bb.js",
+      "barretenberg-x86_64-linux-clang-assert"
+    ]
+  },
   "circuits-wasm-linux-clang": {
     "buildDir": "circuits/cpp",
     "dockerfile": "dockerfiles/Dockerfile.wasm-linux-clang",
@@ -72,6 +147,8 @@
       "^circuits/",
       "^l1-contracts/",
       "^yarn-project/l1-artifacts/",
+      "^yarn-project/noir-contracts/",
+      "^yarn-project/noir-compiler/",
       "^yarn-project/yarn-project-base/",
       "^yarn-project/yarn.lock"
     ],
@@ -90,9 +167,9 @@
     "dependencies": [
       "circuits.js",
       "foundation",
+      "types",
       "merkle-tree",
-      "noir-contracts",
-      "types"
+      "noir-contracts"
     ]
   },
   "archiver": {
@@ -103,6 +180,7 @@
       "^yarn-project/archiver/"
     ],
     "dependencies": [
+      "circuits.js",
       "ethereum",
       "foundation",
       "l1-artifacts",
@@ -119,7 +197,10 @@
     "dependencies": [
       "aztec.js",
       "ethereum",
-      "foundation"
+      "foundation",
+      "noir-compiler",
+      "noir-contracts",
+      "types"
     ]
   },
   "aztec-rpc": {
@@ -131,11 +212,9 @@
     ],
     "dependencies": [
       "acir-simulator",
-      "aztec-node",
       "circuits.js",
       "foundation",
       "key-store",
-      "noir-contracts",
       "types"
     ]
   },
@@ -150,8 +229,12 @@
       "aztec-node",
       "aztec-rpc",
       "aztec.js",
+      "circuits.js",
       "ethereum",
-      "foundation"
+      "foundation",
+      "l1-artifacts",
+      "noir-contracts",
+      "types"
     ]
   },
   "aztec.js": {
@@ -162,10 +245,35 @@
       "^yarn-project/aztec.js/"
     ],
     "dependencies": [
-      "aztec-rpc",
       "circuits.js",
       "foundation",
-      "key-store",
+      "types"
+    ]
+  },
+  "canary-build": {
+    "buildDir": "yarn-project",
+    "projectDir": "yarn-project/canary",
+    "dockerfile": "canary/Dockerfile.build",
+    "rebuildPatterns": [
+      "^yarn-project/canary/"
+    ],
+    "dependencies": [
+      "aztec.js",
+      "l1-artifacts",
+      "noir-contracts",
+      "aztec-sandbox"
+    ]
+  },
+  "canary": {
+    "buildDir": "yarn-project",
+    "projectDir": "yarn-project/canary",
+    "dockerfile": "canary/Dockerfile",
+    "rebuildPatterns": [
+      "^yarn-project/canary/"
+    ],
+    "dependencies": [
+      "aztec.js",
+      "l1-artifacts",
       "noir-contracts"
     ]
   },
@@ -174,11 +282,11 @@
     "projectDir": "yarn-project/circuits.js",
     "dockerfile": "circuits.js/Dockerfile",
     "rebuildPatterns": [
+      "^circuits/",
       "^yarn-project/circuits.js/"
     ],
     "dependencies": [
-      "foundation",
-      "yarn-project-base"
+      "foundation"
     ]
   },
   "end-to-end": {
@@ -189,15 +297,20 @@
       "^yarn-project/end-to-end/"
     ],
     "dependencies": [
+      "archiver",
       "aztec-node",
+      "aztec-rpc",
+      "aztec-sandbox",
       "aztec.js",
       "circuits.js",
+      "cli",
       "ethereum",
       "foundation",
       "l1-artifacts",
       "noir-contracts",
       "p2p",
       "sequencer-client",
+      "types",
       "world-state"
     ]
   },
@@ -244,7 +357,21 @@
     ],
     "dependencies": [
       "circuits.js",
-      "foundation"
+      "foundation",
+      "types"
+    ]
+  },
+  "noir-contracts-build": {
+    "buildDir": "yarn-project",
+    "projectDir": "yarn-project/noir-contracts",
+    "dockerfile": "noir-contracts/Dockerfile.build",
+    "rebuildPatterns": [
+      "^yarn-project/noir-contracts/"
+    ],
+    "dependencies": [
+      "aztec.js",
+      "foundation",
+      "noir-compiler"
     ]
   },
   "noir-contracts": {
@@ -255,7 +382,9 @@
       "^yarn-project/noir-contracts/"
     ],
     "dependencies": [
-      "foundation"
+      "aztec.js",
+      "foundation",
+      "noir-compiler"
     ]
   },
   "noir-compiler": {
@@ -290,6 +419,7 @@
       "^yarn-project/p2p-bootstrap/"
     ],
     "dependencies": [
+      "foundation",
       "p2p"
     ]
   },
@@ -312,7 +442,10 @@
       "^yarn-project/rollup-provider/"
     ],
     "dependencies": [
-      "aztec-node"
+      "aztec-node",
+      "circuits.js",
+      "foundation",
+      "types"
     ]
   },
   "aztec-node": {
@@ -362,8 +495,7 @@
     ],
     "dependencies": [
       "circuits.js",
-      "foundation",
-      "l1-artifacts"
+      "foundation"
     ]
   },
   "world-state": {

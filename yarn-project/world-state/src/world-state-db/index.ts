@@ -1,7 +1,7 @@
-import { LeafData, SiblingPath, LowLeafWitnessData } from '@aztec/merkle-tree';
-import { L2Block, MerkleTreeId } from '@aztec/types';
+import { GlobalVariables, MAX_NEW_NULLIFIERS_PER_TX } from '@aztec/circuits.js';
 import { createDebugLogger } from '@aztec/foundation/log';
-import { KERNEL_NEW_NULLIFIERS_LENGTH } from '@aztec/circuits.js';
+import { LeafData, LowLeafWitnessData } from '@aztec/merkle-tree';
+import { L2Block, MerkleTreeId, SiblingPath } from '@aztec/types';
 
 export * from './merkle_trees.js';
 export { LeafData } from '@aztec/merkle-tree';
@@ -17,11 +17,21 @@ export type IndexedTreeId = MerkleTreeId.NULLIFIER_TREE;
 export type PublicTreeId = MerkleTreeId.PUBLIC_DATA_TREE;
 
 /**
- * The nullifier tree must be pre filled with the number of leaves that are added by one rollup.
- * The tree must be initially padded as the pre-populated 0 index prevents efficient subtree insertion.
- * Padding with some values solves this issue.
+ *
+ * @remarks Short explanation:
+ *    The nullifier tree must be initially padded as the pre-populated 0 index prevents efficient subtree insertion.
+ *    Padding with some values solves this issue.
+ *
+ * @remarks Thorough explanation:
+ *    There needs to be an initial (0,0,0) leaf in the tree, so that when we insert the first 'proper' leaf, we can
+ *    prove that any value greater than 0 doesn't exist in the tree yet. We prefill/pad the tree with "the number of
+ *    leaves that are added by one block" so that the first 'proper' block can insert a full subtree.
+ *
+ *    Without this padding, there would be a leaf (0,0,0) at leaf index 0, making it really difficult to insert e.g.
+ *    1024 leaves for the first block, because there's only neat space for 1023 leaves after 0. By padding with 1023
+ *    more leaves, we can then insert the first block of 1024 leaves into indices 1024:2047.
  */
-export const INITIAL_NULLIFIER_TREE_SIZE = 2 * KERNEL_NEW_NULLIFIERS_LENGTH;
+export const INITIAL_NULLIFIER_TREE_SIZE = 2 * MAX_NEW_NULLIFIERS_PER_TX;
 
 /**
  *  Defines tree information.
@@ -56,7 +66,7 @@ type WithIncludeUncommitted<F> = F extends (...args: [...infer Rest]) => infer R
 /**
  * The current roots of the commitment trees
  */
-export type CurrentCommitmentTreeRoots = {
+export type CurrentTreeRoots = {
   /** Private data tree root. */
   privateDataTreeRoot: Buffer;
   /** Contract data tree root. */
@@ -65,6 +75,10 @@ export type CurrentCommitmentTreeRoots = {
   l1Tol2MessagesTreeRoot: Buffer;
   /** Nullifier data tree root. */
   nullifierTreeRoot: Buffer;
+  /** Blocks tree root. */
+  blocksTreeRoot: Buffer;
+  /** Public data tree root */
+  publicDataTreeRoot: Buffer;
 };
 
 /**
@@ -101,7 +115,7 @@ export interface MerkleTreeOperations {
   /**
    * Gets the current roots of the commitment trees.
    */
-  getCommitmentTreeRoots(): CurrentCommitmentTreeRoots;
+  getTreeRoots(): CurrentTreeRoots;
 
   /**
    * Gets sibling path for a leaf.
@@ -159,23 +173,22 @@ export interface MerkleTreeOperations {
   getLeafValue(treeId: MerkleTreeId, index: bigint): Promise<Buffer | undefined>;
 
   /**
-   * Inserts into the roots trees (CONTRACT_TREE_ROOTS_TREE, PRIVATE_DATA_TREE_ROOTS_TREE, L1_TO_L2_MESSAGES_TREE_ROOTS_TREE)
-   * the current roots of the corresponding trees (CONTRACT_TREE, PRIVATE_DATA_TREE, L1_TO_L2_MESSAGES_TREE).
+   * Inserts the new block hash into the new block hashes tree.
+   * This includes all of the current roots of all of the data trees and the current blocks global vars.
+   * @param globalVariables - The global variables to insert into the block hash.
    */
-  updateHistoricRootsTrees(): Promise<void>;
+  updateHistoricBlocksTree(globalVariables: GlobalVariables): Promise<void>;
 
   /**
    * Batch insert multiple leaves into the tree.
    * @param leaves - Leaves to insert into the tree.
    * @param treeId - The tree on which to insert.
-   * @param treeHeight - Height of the tree.
    * @param subtreeHeight - Height of the subtree.
    * @returns The witness data for the leaves to be updated when inserting the new ones.
    */
   batchInsert(
     treeId: MerkleTreeId,
     leaves: Buffer[],
-    treeHeight: number,
     subtreeHeight: number,
   ): Promise<[LowLeafWitnessData<number>[], SiblingPath<number>] | [undefined, SiblingPath<number>]>;
 
