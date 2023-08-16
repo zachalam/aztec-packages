@@ -10,7 +10,18 @@ contract CGam {
     use dep::aztec::abi;
     use dep::aztec::abi::PrivateContextInputs;
     use dep::aztec::abi::PublicContextInputs;
-    use dep::aztec::context::Context;
+    use dep::value_note::{
+            balance_utils,
+            value_note::{
+                ValueNoteMethods,
+                VALUE_NOTE_LEN,
+            },
+    };
+    use dep::aztec::context::{
+        PrivateContext,
+        PublicContext
+    };
+
     use dep::aztec::types::point::Point;
     use dep::aztec::public_call_stack_item::PublicCallStackItem;
 
@@ -52,7 +63,7 @@ contract CGam {
         inputs: PrivateContextInputs,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
         // Return private circuit public inputs. All private functions need to return this as it is part of the input of the private kernel.
-        Context::new(inputs, 0).finish()
+        PrivateContext::new(inputs, 0).finish()
     }
 
     // TODO feedback: we found it very limiting having resource limits (e.g. read requests) tied to callstacks
@@ -133,7 +144,7 @@ contract CGam {
         seed: Field,    //public randomness
         owner: Point,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context = Context::new(inputs, abi::hash_args([seed, owner.x, owner.y]));
+        let mut context = PrivateContext::new(inputs, abi::hash_args([seed, owner.x, owner.y]));
         // check user balance can afford the cards
         // TODO
 
@@ -149,7 +160,7 @@ contract CGam {
             let card = Card {
                 inner: card_data
             };
-            context = user_collection_insert(context, owner, card);
+            user_collection_insert(&mut context, owner.x, card);
         }
 
         context.finish()
@@ -229,7 +240,7 @@ contract CGam {
         owner: Point,
         join_game_pub_selector: Field
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context = Context::new(inputs, abi::hash_args([
+        let mut context = PrivateContext::new(inputs, abi::hash_args([
             game_id, 
             user_cards[0].id(),
             user_cards[1].id(), // Up to MAX_CARDS - 1
@@ -243,7 +254,8 @@ contract CGam {
         // checks that cards belong to the user
         for i in 0..MAX_CARDS {
             // TODO it hurts when failing asserts just says 'contraints cant be solved'
-            context = assert_own_card(context, user_cards[i], owner);
+            // TODO still true?
+            assert_own_card(&mut context, user_cards[i], owner);
         }
         // compute the deck strength
         let mut deck_strength: u32 = 0;
@@ -251,25 +263,17 @@ contract CGam {
             deck_strength + = card.strength() as u32;
         }
         deck_strength = deck_strength / (MAX_CARDS as u32);
-
-        // Unroll our arguments
-        let mut args = [0; abi::MAX_ARGS];
-        args[0] = game_id;
-        args[1] = owner.x;
-        args[2] = owner.y;
-        args[3] = deck_strength as Field;
-        let (_callStackItem, mut context2) = PublicCallStackItem::call(
-            inputs.call_context.storage_contract_address, // address of this contract
-            join_game_pub_selector, 
-            [game_id, owner.x, owner.y, deck_strength as Field],
-            context
+        context.call_public_function(
+            inputs.call_context.storage_contract_address,
+            join_game_pub_selector,
+            [game_id, owner.x, owner.y, deck_strength as Field]
         );
 
         // TODO
         // maps the user_id to its cards = user_deck
         // TODO undo hacks
         for i in 0..MAX_CARDS {
-            context2 = user_deck_insert(owner, game_id, i, i, user_cards, context2);
+            user_deck_insert(&mut context, owner.x, game_id, i, i, user_cards);
         }
 
         // for i in 0..MAX_CARDS {
@@ -284,13 +288,13 @@ contract CGam {
 
     //EXTERNAL
     fn show_card(
-        inputs: PrivateContextInputs, 
-        card: Card, 
+        inputs: PrivateContextInputs,
+        card: Card,
         owner: Point
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context = Context::new(inputs, abi::hash_args([card.id(), owner.x, owner.y]));
-            // checks that card belongs to the deck and it not already played
-        context = assert_own_card(context, card, owner);
+        let mut context = PrivateContext::new(inputs, abi::hash_args([card.id(), owner.x, owner.y]));
+        // checks that card belongs to the deck and it not already played
+        assert_own_card(&mut context, card, owner);
         //call open_show_card ... TODO
         context.finish()
     }
@@ -442,7 +446,7 @@ contract CGam {
     }
 
     fn private_claim_winnings(inputs: PrivateContextInputs, game_id: Field, owner: Point) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut initialContext = Context::new(inputs, abi::hash_args([game_id, owner.x, owner.y]));
+        let mut initialContext = PrivateContext::new(inputs, abi::hash_args([game_id, owner.x, owner.y]));
 
         // TODO prove we won!!!
         // TODO do we want to burn?

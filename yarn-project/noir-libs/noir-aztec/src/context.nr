@@ -294,8 +294,8 @@ impl PrivateContext {
 
     fn call_public_function<ARGS_COUNT>(
         &mut self,
-        contract_address: Field, 
-        function_selector: Field, 
+        contract_address: Field,
+        function_selector: Field,
         args: [Field; ARGS_COUNT]
     ) {
         let args_hash = hash_args(args);
