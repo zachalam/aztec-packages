@@ -1,4 +1,4 @@
-import { CallContext, CircuitsWasm, ConstantHistoricBlockData, FunctionData, TxContext } from '@aztec/circuits.js';
+import { CallContext, CircuitsWasm, FunctionData, TxContext } from '@aztec/circuits.js';
 import { computeTxHash } from '@aztec/circuits.js/abis';
 import { Grumpkin } from '@aztec/circuits.js/barretenberg';
 import { ArrayType, FunctionAbi, FunctionType, encodeArguments } from '@aztec/foundation/abi';
@@ -8,7 +8,7 @@ import { Fr } from '@aztec/foundation/fields';
 import { DebugLogger, createDebugLogger } from '@aztec/foundation/log';
 import { AztecNode, FunctionCall, TxExecutionRequest } from '@aztec/types';
 
-import { initLogLevel, newSimulatedBackend, SimulatedBackend } from 'acvm_js';
+import { initLogLevel, createBackend, SimulatedBackend } from 'acvm_js';
 
 import { PackedArgsCache } from '../packed_args_cache.js';
 import { ClientTxExecutionContext } from './client_execution_context.js';
@@ -41,7 +41,7 @@ export class AcirSimulator {
     if (!this.backend) {
       initLogLevel("INFO"); // acvm rust log level
       logger(`Initializing ACVM SimulatedBackend`);
-      this.backend = await newSimulatedBackend();
+      this.backend = await createBackend();
     } else {
       logger(`Getting pre-initialized ACVM SimulatedBackend`);
     }
@@ -54,7 +54,7 @@ export class AcirSimulator {
    * @param entryPointABI - The ABI of the entry point function.
    * @param contractAddress - The address of the contract (should match request.origin)
    * @param portalContractAddress - The address of the portal contract.
-   * @param constantHistoricBlockData - Data required to reconstruct the block hash, this also contains the historic tree roots.
+   * @param historicBlockData - Data required to reconstruct the block hash, this also contains the historic tree roots.
    * @param curve - The curve instance for elliptic curve operations.
    * @param packedArguments - The entrypoint packed arguments
    * @returns The result of the execution.
@@ -64,7 +64,6 @@ export class AcirSimulator {
     entryPointABI: FunctionAbi,
     contractAddress: AztecAddress,
     portalContractAddress: EthAddress,
-    constantHistoricBlockData: ConstantHistoricBlockData,
   ): Promise<ExecutionResult> {
     if (entryPointABI.functionType !== FunctionType.SECRET) {
       throw new Error(`Cannot run ${entryPointABI.functionType} function as secret`);
@@ -76,6 +75,7 @@ export class AcirSimulator {
 
     const curve = await Grumpkin.new();
 
+    const historicBlockData = await this.db.getHistoricBlockData();
     const callContext = new CallContext(
       AztecAddress.ZERO,
       contractAddress,
@@ -92,7 +92,7 @@ export class AcirSimulator {
         this.db,
         txNullifier,
         request.txContext,
-        constantHistoricBlockData,
+        historicBlockData,
         await PackedArgsCache.create(request.packedArguments),
       ),
       entryPointABI,
@@ -113,7 +113,7 @@ export class AcirSimulator {
    * @param entryPointABI - The ABI of the entry point function.
    * @param contractAddress - The address of the contract.
    * @param portalContractAddress - The address of the portal contract.
-   * @param constantHistoricBlockData - Block data containing historic roots.
+   * @param historicBlockData - Block data containing historic roots.
    * @param aztecNode - The AztecNode instance.
    */
   public async runUnconstrained(
@@ -122,12 +122,13 @@ export class AcirSimulator {
     entryPointABI: FunctionAbi,
     contractAddress: AztecAddress,
     portalContractAddress: EthAddress,
-    constantHistoricBlockData: ConstantHistoricBlockData,
     aztecNode?: AztecNode,
   ) {
     if (entryPointABI.functionType !== FunctionType.UNCONSTRAINED) {
       throw new Error(`Cannot run ${entryPointABI.functionType} function as constrained`);
     }
+
+    const historicBlockData = await this.db.getHistoricBlockData();
     const callContext = new CallContext(
       origin,
       contractAddress,
@@ -142,7 +143,7 @@ export class AcirSimulator {
         this.db,
         Fr.ZERO,
         TxContext.empty(),
-        constantHistoricBlockData,
+        historicBlockData,
         await PackedArgsCache.create([]),
       ),
       entryPointABI,
@@ -181,14 +182,13 @@ export class AcirSimulator {
         args: encodeArguments(abi, [contractAddress, nonce, storageSlot, extendedPreimage]),
       };
 
-      const [[innerNoteHash, siloedNoteHash, uniqueSiloedNoteHash, innerNullifier]] = await this.runUnconstrained(
+      const [innerNoteHash, siloedNoteHash, uniqueSiloedNoteHash, innerNullifier] = (await this.runUnconstrained(
         execRequest,
         AztecAddress.ZERO,
         abi,
         AztecAddress.ZERO,
         EthAddress.ZERO,
-        ConstantHistoricBlockData.empty(),
-      );
+      )) as bigint[];
 
       return {
         innerNoteHash: new Fr(innerNoteHash),

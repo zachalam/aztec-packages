@@ -3,7 +3,7 @@ contract MultiTransfer {
     use dep::aztec::abi;
     use dep::aztec::abi::PrivateContextInputs;
     use dep::aztec::abi::PublicContextInputs;
-    use dep::aztec::context::Context;
+    use dep::aztec::context::PrivateContext;
     use dep::aztec::oracle::public_call;
     use dep::aztec::private_call_stack_item::PrivateCallStackItem;
     use dep::aztec::public_call_stack_item::PublicCallStackItem;
@@ -21,7 +21,7 @@ contract MultiTransfer {
     fn constructor(
         inputs: PrivateContextInputs
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        Context::new(inputs, 0).finish()
+        PrivateContext::new(inputs, 0).finish()
     }
 
     // Transfers 12 amounts to 12 recipients.
@@ -37,7 +37,7 @@ contract MultiTransfer {
         owner: Field, // Owner of the asset
         batch_transfer_selector: Field, // Function selector for transfer
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context = Context::new(inputs, abi::hash_args([
+        let mut context = PrivateContext::new(inputs, abi::hash_args([
             asset, 
             addresses[0], 
             addresses[1], 

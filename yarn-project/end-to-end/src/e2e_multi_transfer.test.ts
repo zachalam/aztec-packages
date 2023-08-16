@@ -4,7 +4,7 @@ import { AztecAddress, Contract, Fr, Wallet } from '@aztec/aztec.js';
 import { DebugLogger } from '@aztec/foundation/log';
 import { PrivateTokenAirdropContract } from '@aztec/noir-contracts/types';
 import { MultiTransferContract } from '@aztec/noir-contracts/types';
-import { AztecRPC } from '@aztec/types';
+import { AztecRPC, CompleteAddress } from '@aztec/types';
 
 import { expectsNumOfEncryptedLogsInTheLastBlockToBe, setup } from './fixtures/utils.js';
 
@@ -14,7 +14,6 @@ describe('multi-transfer payments', () => {
   let aztecNode: AztecNodeService | undefined;
   let aztecRpcServer: AztecRPC;
   let wallet: Wallet;
-  let accounts: AztecAddress[];
   let logger: DebugLogger;
   let ownerAddress: AztecAddress;
   const recipients: AztecAddress[] = [];
@@ -23,11 +22,12 @@ describe('multi-transfer payments', () => {
   let multiTransferContract: MultiTransferContract;
 
   beforeEach(async () => {
+    let accounts: CompleteAddress[];
     ({ aztecNode, aztecRpcServer, accounts, logger, wallet } = await setup(numberOfAccounts + 1)); // 1st being the `owner`
-    ownerAddress = accounts[0];
+    ownerAddress = accounts[0].address;
 
     for (let i = 1; i < accounts.length; i++) {
-      const account = accounts[i];
+      const account = accounts[i].address;
       recipients.push(account);
     }
   }, 100_000);
@@ -52,7 +52,7 @@ describe('multi-transfer payments', () => {
   };
 
   const expectBalance = async (tokenContract: Contract, owner: AztecAddress, expectedBalance: bigint) => {
-    const [balance] = await tokenContract.methods.getBalance(owner).view({ from: owner });
+    const balance = await tokenContract.methods.getBalance(owner).view({ from: owner });
     logger(`Account ${owner} balance: ${balance}`);
     expect(balance).toBe(expectedBalance);
   };
@@ -99,7 +99,7 @@ describe('multi-transfer payments', () => {
         zkTokenContract.address.toField(),
         recipients.concat(recipients),
         amounts,
-        ownerAddress,
+        ownerAddress!,
         Fr.fromBuffer(zkTokenContract.methods.batchTransfer.selector),
       )
       .send({ origin: ownerAddress });

@@ -1,4 +1,4 @@
-use dep::aztec::context::Context;
+use dep::aztec::context::PrivateContext;
 use dep::aztec::log::emit_encrypted_log;
 use dep::aztec::note::note_getter_options::NoteGetterOptions;
 use dep::aztec::oracle::get_public_key::get_public_key;
@@ -12,7 +12,7 @@ use crate::{
 use dep::aztec::oracle::debug_log::debug_log_format;
 
 fn spend_notes(
-    context: &mut Context,
+    context: &mut PrivateContext,
     balance: Set<ValueNote, VALUE_NOTE_LEN>,
     amount: Field,
     owner: Field,
@@ -54,7 +54,6 @@ fn spend_notes(
         context,
         context.inputs.call_context.storage_contract_address,
         balance.storage_slot,
-        owner,
         encryption_pub_key,
         encrypted_data,
     );
@@ -68,7 +67,7 @@ fn spend_notes(
   note is to be spent. 
 */
 fn spend_one_note(
-    context: &mut Context,
+    context: &mut PrivateContext,
     balance: Set<ValueNote, VALUE_NOTE_LEN>,
     amount: Field,
     owner: Field,
@@ -153,14 +152,13 @@ fn spend_one_note(
         context,
         context.inputs.call_context.storage_contract_address,
         balance.storage_slot,
-        owner,
         encryption_pub_key,
         encrypted_data,
     );
 }
 
 fn send_note(
-    context: &mut Context,
+    context: &mut PrivateContext,
     balance: Set<ValueNote, VALUE_NOTE_LEN>,
     amount: Field,
     recipient: Field,
@@ -177,7 +175,6 @@ fn send_note(
         context,
         context.inputs.call_context.storage_contract_address,
         balance.storage_slot,
-        recipient,
         encryption_pub_key,
         note.serialise(),
     );
@@ -189,7 +186,7 @@ fn send_note(
   So we split the output notes as: 3 to recipients + 1 to the owner (the change note).
 */
 fn send_notes(
-    context: &mut Context,
+    context: &mut PrivateContext,
     recipient_balances: [Set<ValueNote, VALUE_NOTE_LEN>; 3],
     amounts: [Field; 3], 
     recipients: [Field; 3],
@@ -222,7 +219,6 @@ fn send_notes(
         context,
         context.inputs.call_context.storage_contract_address,
         recipient_balances[0].storage_slot,
-        recipients[0],
         recipient0_encryption_pub_key,
         recipient0_encrypted_data,
     );
@@ -235,7 +231,6 @@ fn send_notes(
         context,
         context.inputs.call_context.storage_contract_address,
         recipient_balances[1].storage_slot,
-        recipients[1],
         recipient1_encryption_pub_key,
         recipient1_encrypted_data,
     );
@@ -248,7 +243,6 @@ fn send_notes(
         context,
         context.inputs.call_context.storage_contract_address,
         recipient_balances[2].storage_slot,
-        recipients[2],
         recipient2_encryption_pub_key,
         recipient2_encrypted_data,
     );

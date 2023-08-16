@@ -1,11 +1,11 @@
 import {
   AztecAddress,
   CallContext,
-  ConstantHistoricBlockData,
   EthAddress,
   Fr,
   FunctionData,
   GlobalVariables,
+  HistoricBlockData,
 } from '@aztec/circuits.js';
 import { padArrayEnd } from '@aztec/foundation/collection';
 import { createDebugLogger } from '@aztec/foundation/log';
@@ -15,7 +15,7 @@ import {
   ZERO_ACVM_FIELD,
   acvm,
   convertACVMFieldToBuffer,
-  extractReturnWitness,
+  extractPublicCircuitPublicInputs,
   frToAztecAddress,
   frToSelector,
   fromACVMField,
@@ -42,7 +42,7 @@ export class PublicExecutor {
     private readonly stateDb: PublicStateDB,
     private readonly contractsDb: PublicContractsDB,
     private readonly commitmentsDb: CommitmentsDB,
-    private readonly blockData: ConstantHistoricBlockData,
+    private readonly blockData: HistoricBlockData,
 
     private log = createDebugLogger('aztec:simulator:public-executor'),
   ) {}
@@ -161,7 +161,7 @@ export class PublicExecutor {
       },
     });
 
-    const returnValues = extractReturnWitness(acir, partialWitness).map(fromACVMField);
+    const { returnValues } = extractPublicCircuitPublicInputs(partialWitness, acir);
 
     const [contractStorageReads, contractStorageUpdateRequests] = storageActions.collect();
 
@@ -221,7 +221,7 @@ export class PublicExecutor {
  * Generates the initial witness for a public function.
  * @param args - The arguments to the function.
  * @param callContext - The call context of the function.
- * @param constantHistoricBlockData - Historic Trees roots and data required to reconstruct block hash.
+ * @param historicBlockData - Historic Trees roots and data required to reconstruct block hash.
  * @param globalVariables - The global variables.
  * @param witnessStartIndex - The index where to start inserting the parameters.
  * @returns The initial witness.
@@ -229,7 +229,7 @@ export class PublicExecutor {
 function getInitialWitness(
   args: Fr[],
   callContext: CallContext,
-  constantHistoricBlockData: ConstantHistoricBlockData,
+  historicBlockData: HistoricBlockData,
   globalVariables: GlobalVariables,
   witnessStartIndex = 1,
 ) {
@@ -241,13 +241,13 @@ function getInitialWitness(
     callContext.isStaticCall,
     callContext.isContractDeployment,
 
-    constantHistoricBlockData.privateDataTreeRoot,
-    constantHistoricBlockData.nullifierTreeRoot,
-    constantHistoricBlockData.contractTreeRoot,
-    constantHistoricBlockData.l1ToL2MessagesTreeRoot,
-    constantHistoricBlockData.blocksTreeRoot,
-    constantHistoricBlockData.prevGlobalVariablesHash,
-    constantHistoricBlockData.publicDataTreeRoot,
+    historicBlockData.privateDataTreeRoot,
+    historicBlockData.nullifierTreeRoot,
+    historicBlockData.contractTreeRoot,
+    historicBlockData.l1ToL2MessagesTreeRoot,
+    historicBlockData.blocksTreeRoot,
+    historicBlockData.globalVariablesHash,
+    historicBlockData.publicDataTreeRoot,
 
     globalVariables.chainId,
     globalVariables.version,

@@ -75,6 +75,7 @@ export async function acvm(
   callback: ACIRCallback,
 ): Promise<ACIRExecutionResult> {
   // package.json - "acvm_js": "/mnt/user-data/david/projects/4-noir-lang/acvm/outputs/out",
+  // package.json - "acvm_js": "https://github.com/dbanks12/acvm-simulator-wasm#db/init-sim-backend",
   const logger = createDebugLogger('aztec:simulator:acvm');
   logger(`Executing circuit with backend: ${JSON.stringify(backend)}`);
   const partialWitness = await executeCircuit(backend, acir, initialWitness, async (name: string, args: ForeignCallInput[]) => {

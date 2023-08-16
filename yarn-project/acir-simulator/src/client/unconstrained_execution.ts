@@ -1,5 +1,5 @@
 import { CallContext, FunctionData } from '@aztec/circuits.js';
-import { FunctionAbi, decodeReturnValues } from '@aztec/foundation/abi';
+import { DecodedReturn, FunctionAbi, decodeReturnValues } from '@aztec/foundation/abi';
 import { AztecAddress } from '@aztec/foundation/aztec-address';
 import { Fr } from '@aztec/foundation/fields';
 import { createDebugLogger } from '@aztec/foundation/log';
@@ -31,7 +31,7 @@ export class UnconstrainedFunctionExecution {
    * @param aztecNode - The aztec node.
    * @returns The return values of the executed function.
    */
-  public async run(aztecNode?: AztecNode): Promise<any[]> {
+  public async run(aztecNode?: AztecNode): Promise<DecodedReturn> {
     this.log(
       `Executing unconstrained function ${this.contractAddress.toShortString()}:${this.functionData.functionSelectorBuffer.toString(
         'hex',
@@ -45,8 +45,8 @@ export class UnconstrainedFunctionExecution {
       getSecretKey: ([ownerX], [ownerY]) => this.context.getSecretKey(this.contractAddress, ownerX, ownerY),
       getPublicKey: async ([acvmAddress]) => {
         const address = frToAztecAddress(fromACVMField(acvmAddress));
-        const [pubKey, partialAddress] = await this.context.db.getPublicKey(address);
-        return [pubKey.x, pubKey.y, partialAddress].map(toACVMField);
+        const { publicKey, partialAddress } = await this.context.db.getCompleteAddress(address);
+        return [publicKey.x, publicKey.y, partialAddress].map(toACVMField);
       },
       getNotes: ([slot], sortBy, sortOrder, [limit], [offset], [returnSize]) =>
         this.context.getNotes(this.contractAddress, slot, sortBy, sortOrder, +limit, +offset, +returnSize),
