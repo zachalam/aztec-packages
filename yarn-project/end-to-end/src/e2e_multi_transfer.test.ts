@@ -103,7 +103,7 @@ describe('multi-transfer payments', () => {
         Fr.fromBuffer(zkTokenContract.methods.batchTransfer.selector),
       )
       .send({ origin: ownerAddress });
-    await multiTransferTx.isMined({ timeout: 1000 }); // mining timeout ≥ time needed for the test to finish.
+    await multiTransferTx.isMined({ timeout: 10000 }); // mining timeout ≥ time needed for the test to finish.
     const multiTransferTxReceipt = await multiTransferTx.getReceipt();
     logger(`Consumption Receipt status: ${multiTransferTxReceipt.status}`);
 

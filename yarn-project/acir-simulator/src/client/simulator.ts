@@ -8,6 +8,8 @@ import { Fr } from '@aztec/foundation/fields';
 import { DebugLogger, createDebugLogger } from '@aztec/foundation/log';
 import { AztecNode, FunctionCall, TxExecutionRequest } from '@aztec/types';
 
+import { initLogLevel, newSimulatedBackend, SimulatedBackend } from 'acvm_js';
+
 import { PackedArgsCache } from '../packed_args_cache.js';
 import { ClientTxExecutionContext } from './client_execution_context.js';
 import { DBOracle } from './db_oracle.js';
@@ -20,10 +22,30 @@ import { UnconstrainedFunctionExecution } from './unconstrained_execution.js';
  * The ACIR simulator.
  */
 export class AcirSimulator {
+  static backend: SimulatedBackend;
   private log: DebugLogger;
 
   constructor(private db: DBOracle) {
     this.log = createDebugLogger('aztec:simulator');
+  }
+
+  /**
+   * Gets or initializes the ACVM SimulatedBackend
+   *
+   * Occurs only once across all instances of AcirSimulator.
+   * @returns ACVM SimulatedBackend
+   */
+  public static async getBackend(): Promise<SimulatedBackend> {
+    const logger = createDebugLogger('aztec:simulator:getBackend');
+    logger(`Getting or initializing ACVM SimulatedBackend`);
+    if (!this.backend) {
+      initLogLevel("INFO"); // acvm rust log level
+      logger(`Initializing ACVM SimulatedBackend`);
+      this.backend = await newSimulatedBackend();
+    } else {
+      logger(`Getting pre-initialized ACVM SimulatedBackend`);
+    }
+    return this.backend;
   }
 
   /**
