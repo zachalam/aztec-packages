@@ -90,6 +90,18 @@ describe('Unconstrained Execution test suite', () => {
       );
 
       expect(result).toEqual([9n]);
+
+      const result2 = await acirSimulator.runUnconstrained(
+        execRequest,
+        AztecAddress.random(),
+        abi,
+        AztecAddress.random(),
+        EthAddress.ZERO,
+        constantHistoricBlockData,
+      );
+
+      expect(result2).toEqual([9n]);
+
     }, 30_000);
   });
 });
