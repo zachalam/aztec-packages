@@ -915,6 +915,17 @@ jobs:
           name: "Test"
           command: cond_spot_run_tests end-to-end e2e_aztec_js_browser.test.ts docker-compose-e2e-sandbox.yml
 
+  aztec-rpc-sandbox:
+    docker:
+      - image: aztecprotocol/alpine-build-image
+    resource_class: small
+    steps:
+      - *checkout
+      - *setup_env
+      - run:
+          name: "Test"
+          command: cond_spot_run_tests end-to-end aztec_rpc_sandbox.test.ts docker-compose-e2e-sandbox.yml
+
   e2e-canary-test:
     docker:
       - image: aztecprotocol/alpine-build-image
@@ -951,6 +962,7 @@ jobs:
     steps:
       - *checkout
       - *setup_env
+      # Aztec.js and dependencies
       - run:
           name: "foundation"
           working_directory: foundation
@@ -964,18 +976,6 @@ jobs:
             deploy_ecr circuits.js
             deploy_npm circuits.js
       - run:
-          name: "l1-artifacts"
-          working_directory: l1-artifacts
-          command: |
-            deploy_ecr l1-artifacts
-            deploy_npm l1-artifacts
-      - run:
-          name: "aztec-ethereum"
-          working_directory: ethereum
-          command: |
-            deploy_ecr ethereum
-            deploy_npm ethereum
-      - run:
           name: "types"
           working_directory: types
           command: |
@@ -987,6 +987,19 @@ jobs:
           command: |
             deploy_ecr aztec.js
             deploy_npm aztec.js
+      # Aztec CLI and dependencies
+      - run:
+          name: "l1-artifacts"
+          working_directory: l1-artifacts
+          command: |
+            deploy_ecr l1-artifacts
+            deploy_npm l1-artifacts
+      - run:
+          name: "aztec-ethereum"
+          working_directory: ethereum
+          command: |
+            deploy_ecr ethereum
+            deploy_npm ethereum
       - run:
           name: "noir-compiler"
           working_directory: noir-compiler
@@ -1005,6 +1018,61 @@ jobs:
           command: |
             deploy_ecr aztec-cli
             deploy_npm aztec-cli
+      # Aztec Sandbox and dependencies
+      - run:
+          name: "aztec-rpc"
+          working_directory: aztec-rpc
+          command: |
+            deploy_ecr aztec-rpc
+            deploy_npm aztec-rpc
+      - run:
+          name: "acir-simulator"
+          working_directory: acir-simulator
+          command: |
+            deploy_ecr acir-simulator
+            deploy_npm acir-simulator
+      - run:
+          name: "archiver"
+          working_directory: archiver
+          command: |
+            deploy_ecr archiver
+            deploy_npm archiver
+      - run:
+          name: "merkle-tree"
+          working_directory: merkle-tree
+          command: |
+            deploy_ecr merkle-tree
+            deploy_npm merkle-tree
+      - run:
+          name: "p2p"
+          working_directory: p2p
+          command: |
+            deploy_ecr p2p
+            deploy_npm p2p
+      - run:
+          name: "sequencer-client"
+          working_directory: sequencer-client
+          command: |
+            deploy_ecr sequencer-client
+            deploy_npm sequencer-client
+      - run:
+          name: "world-state"
+          working_directory: world-state
+          command: |
+            deploy_ecr world-state
+            deploy_npm world-state
+      - run:
+          name: "key-store"
+          working_directory: key-store
+          command: |
+            deploy_ecr key-store
+            deploy_npm key-store
+      - run:
+          name: "aztec-node"
+          working_directory: aztec-node
+          command: |
+            deploy_ecr aztec-node
+            deploy_npm aztec-node
       - run:
           name: "aztec-sandbox"
           working_directory: aztec-sandbox
@@ -1250,6 +1318,7 @@ workflows:
       - e2e-p2p: *e2e_test
       - e2e-canary-test: *e2e_test
       - e2e-browser-sandbox: *e2e_test
+      - aztec-rpc-sandbox: *e2e_test
 
       - e2e-end:
           requires:
@@ -1275,6 +1344,7 @@ workflows:
             - e2e-p2p
             - e2e-browser-sandbox
             - e2e-canary-test
+            - aztec-rpc-sandbox
           <<: *defaults
 
       - deploy-dockerhub:
