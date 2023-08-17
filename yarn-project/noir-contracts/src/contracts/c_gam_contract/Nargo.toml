@@ -1,5 +1,5 @@
 [package]
-name = "easy_private_token_contract"
+name = "cgam"
 authors = [""]
 compiler_version = "0.1"
 type = "contract"
