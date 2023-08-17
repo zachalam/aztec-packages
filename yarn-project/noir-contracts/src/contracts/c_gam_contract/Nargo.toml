@@ -1,5 +1,5 @@
 [package]
-name = "cgam"
+name = "c_gam_contract"
 authors = [""]
 compiler_version = "0.1"
 type = "contract"
