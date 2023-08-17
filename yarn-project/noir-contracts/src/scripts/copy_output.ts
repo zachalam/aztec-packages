@@ -50,7 +50,6 @@ const main = () => {
   const projectDirPath = `src/contracts/${projectName}`;
 
   const contractName = upperFirst(camelCase(name));
-  console.log({ projectName });
   const buildJsonFilePath = `${projectDirPath}/target/${projectName}-${contractName}.json`;
   const buildJson = JSON.parse(readFileSync(buildJsonFilePath).toString());
 
