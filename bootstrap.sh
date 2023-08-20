@@ -5,6 +5,13 @@ export CLEAN=${1:-}
 
 cd "$(dirname "$0")"
 
+if !brew list nvm &>/dev/null;
+  then
+    brew install nvm
+    mkdir ~/.nvm
+    "/opt/homebrew/opt/nvm/nvm.sh"
+fi
+
 # Remove all untracked files and directories.
 if [ -n "$CLEAN" ]; then
   if [ "$CLEAN" = "clean" ]; then
@@ -39,10 +46,26 @@ circuits/cpp/bootstrap.sh
 if [ "$(uname)" = "Darwin" ]; then
   # works around https://github.com/AztecProtocol/aztec3-packages/issues/158
   echo "Note: not sourcing nvm on Mac, see github #158"
+    if !command -v nargo &> /dev/null
+    then
+        echo "Installing noir"
+        curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
+        noirup -v aztec # does this work without source?
+        echo "Installing c++ dependencies"
+        brew install llvm libomp clang-format cmake ninja
+    fi
+    if !brew list nvm &>/dev/null;
+      then
+        brew install nvm
+        mkdir ~/.nvm
+        "/opt/homebrew/opt/nvm/nvm.sh"
+        # nvm install doesnt work in bash?  path works in zsh though.
+        # npm install --global yarn # also need to run this in zsh
+    fi
 else
   \. ~/.nvm/nvm.sh
+  nvm install
 fi
-nvm install
 
 cd yarn-project
 yarn install --immutable
