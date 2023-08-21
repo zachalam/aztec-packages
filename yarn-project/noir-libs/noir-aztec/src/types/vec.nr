@@ -16,6 +16,7 @@ impl<T, MaxLen> BoundedVec<T, MaxLen> {
 
     fn push(&mut self, elem: T) {
         assert(self.len as u64 < MaxLen as u64);
+
         self.storage[self.len] = elem;
         self.len += 1;
     }
