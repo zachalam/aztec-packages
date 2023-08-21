@@ -34,9 +34,9 @@ describe('e2e_c_gam_contract', () => {
     logger(`Deploying L2 contract...`);
     const deployer = new ContractDeployer(CGamContractAbi, aztecRpcServer);
     const tx = deployer.deploy().send();
+    await tx.isMined();
     const receipt = await tx.getReceipt();
     contract = await CGamContract.at(receipt.contractAddress!, wallet);
-    await tx.wait();
     logger('L2 contract deployed');
     return contract;
   };
@@ -51,9 +51,9 @@ describe('e2e_c_gam_contract', () => {
     await tx.send({ origin: account.address }).isMined();
     logger(`We bought our pack!`);
     const cardData = await deployedContract.methods
-      .get_pack_cards_unconstrained(account.publicKey)
+      .get_pack_cards_unconstrained(seed, account.publicKey)
       .view({ from: account.address });
-    return cardData[0];
+    return cardData;
   };
 
   it.skip('should call buy_pack and see notes', async () => {
@@ -75,7 +75,7 @@ describe('e2e_c_gam_contract', () => {
       owner.publicKey,
       deployedContract.methods.join_game_pub.selector,
     );
-    await tx.send({ origin: owner.address }).isMined();
+    await tx.send({ origin: owner.address }).wait();
   }, 30_000);
 
   // /**

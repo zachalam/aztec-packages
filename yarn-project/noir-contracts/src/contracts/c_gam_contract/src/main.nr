@@ -76,12 +76,10 @@ contract CGam {
     // // map game_id to set of notes = card note
     // //global revealed_cards = StorageMap { storage_slot: 15 };
 
-    // // TODO we would like to use real unconstrained fn's
-    // /// ABI get_pack_cards_unconstrained type "unconstrained"
-    fn get_pack_cards_unconstrained(
+    unconstrained fn get_pack_cards_unconstrained(
         seed: Field,
         owner: Point
-    ) -> distinct pub [Field; PACK_CARDS] {
+    ) -> [Field; PACK_CARDS] {
         let sk = get_secret_key(owner);
         let mut user_seed = [0; 32];
         let seeds = seed.to_le_bytes(32);
