@@ -66,7 +66,10 @@ yarn --cwd circuits.js remake-constants
 yarn
 # We do not need to build individual packages, yarn build will build the root tsconfig.json
 yarn build
-cd ..
+#Build web version of Aztec.js
+cd aztec.js
+yarn build
+cd ../..
 
 echo
 echo "Success! You could now run e.g.: ./scripts/tmux-splits e2e_deploy_contract"
