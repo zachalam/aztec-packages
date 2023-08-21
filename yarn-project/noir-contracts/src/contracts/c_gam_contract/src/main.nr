@@ -251,10 +251,8 @@ contract CGam {
 
         //TODO commit to $$
 
-        // checks that cards belong to the user
+        // // checks that cards belong to the user
         for i in 0..MAX_CARDS {
-            // TODO it hurts when failing asserts just says 'contraints cant be solved'
-            // TODO still true?
             assert_own_card(&mut context, user_cards[i], owner);
         }
         // compute the deck strength

@@ -1,35 +1,33 @@
 import { AztecNodeService } from '@aztec/aztec-node';
-import {
-  AztecAddress,
-  AztecRPCServer,
-  Contract,
-  ContractDeployer,
-  ContractFunctionInteraction,
-  Fr,
-  Point,
-  Wallet,
-} from '@aztec/aztec.js';
-import { CGamContractAbi } from '@aztec/noir-contracts/examples';
+import { AztecRPCServer } from '@aztec/aztec-rpc';
+import { AztecRPC, CompleteAddress, ContractDeployer, ContractFunctionInteraction, Wallet } from '@aztec/aztec.js';
 import { DebugLogger } from '@aztec/foundation/log';
+import { CGamContract, CGamContractAbi } from '@aztec/noir-contracts/types';
 
-import { pointToPublicKey, setup } from './utils.js';
+import { setup } from './fixtures/utils.js';
 
 describe('e2e_c_gam_contract', () => {
-  let aztecNode: AztecNodeService;
-  let aztecRpcServer: AztecRPCServer;
+  let aztecNode: AztecNodeService | undefined;
+  let aztecRpcServer: AztecRPC;
   let wallet: Wallet;
-  let accounts: AztecAddress[];
+  let accounts: CompleteAddress[];
   let logger: DebugLogger;
+  let owner: CompleteAddress;
+  // let recipient: CompleteAddress;
 
-  let contract: Contract;
+  let contract: CGamContract;
 
   beforeEach(async () => {
     ({ aztecNode, aztecRpcServer, accounts, logger, wallet } = await setup(/*two accounts for 2 players*/ 2));
+    owner = accounts[0];
+    // recipient = accounts[1]; // TODO play game with this guy
   }, 100_000);
 
   afterEach(async () => {
     await aztecNode?.stop();
-    await aztecRpcServer?.stop();
+    if (aztecRpcServer instanceof AztecRPCServer) {
+      await aztecRpcServer?.stop();
+    }
   });
 
   const deployContract = async () => {
@@ -37,52 +35,47 @@ describe('e2e_c_gam_contract', () => {
     const deployer = new ContractDeployer(CGamContractAbi, aztecRpcServer);
     const tx = deployer.deploy().send();
     const receipt = await tx.getReceipt();
-    contract = new Contract(receipt.contractAddress!, CGamContractAbi, wallet);
-    await tx.isMined(0, 0.1);
-    await tx.getReceipt();
+    contract = await CGamContract.at(receipt.contractAddress!, wallet);
+    await tx.wait();
     logger('L2 contract deployed');
     return contract;
   };
 
   const buyPackAndGetData = async (
-    deployedContract: Contract,
-    owner: Point,
-    account: AztecAddress,
+    deployedContract: CGamContract,
+    account: CompleteAddress,
     logger: DebugLogger,
   ): Promise<bigint[]> => {
     const seed = 1n;
-    const tx: ContractFunctionInteraction = deployedContract.methods.buy_pack(seed, pointToPublicKey(owner));
-    await tx.send({ from: account }).isMined();
+    const tx: ContractFunctionInteraction = deployedContract.methods.buy_pack(seed, account.publicKey);
+    await tx.send({ origin: account.address }).isMined();
     logger(`We bought our pack!`);
     const cardData = await deployedContract.methods
-      .get_pack_cards_unconstrained(seed, pointToPublicKey(owner))
-      .view({ from: account });
+      .get_pack_cards_unconstrained(account.publicKey)
+      .view({ from: account.address });
     return cardData[0];
   };
 
   it.skip('should call buy_pack and see notes', async () => {
-    const owner = await aztecRpcServer.getAccountPublicKey(accounts[0]);
     const deployedContract = await deployContract();
-    const cardData = await buyPackAndGetData(deployedContract, owner, accounts[0], logger);
+    const cardData = await buyPackAndGetData(deployedContract, owner, logger);
     // Test that we have received the expected card data
     expect(cardData).toEqual([328682529145n, 657365058290n, 986047587435n]);
   }, 30_000);
 
   it('should call join_game and queue a public call', async () => {
-    const owner = await aztecRpcServer.getAccountPublicKey(accounts[0]);
     const deployedContract = await deployContract();
-    const cardData = await buyPackAndGetData(deployedContract, owner, accounts[0], logger);
+    const cardData = await buyPackAndGetData(deployedContract, owner, logger);
     // Test that we have received the expected card data
     expect(cardData).toEqual([328682529145n, 657365058290n, 986047587435n]);
-    // const gameId = 1337n; // decided off-chain
-    const tx: ContractFunctionInteraction = deployedContract.methods
-      .join_game
-      // gameId,
-      // cardData.map(cardData => ({ inner: cardData })),
-      // pointToPublicKey(owner),
-      // Fr.fromBuffer(deployedContract.methods.join_game_pub.selector),
-      ();
-    await tx.send({ from: accounts[0] }).isMined();
+    const gameId = 1337n; // decided off-chain
+    const tx: ContractFunctionInteraction = deployedContract.methods.join_game(
+      gameId,
+      cardData.map(cardData => ({ inner: cardData })),
+      owner.publicKey,
+      deployedContract.methods.join_game_pub.selector,
+    );
+    await tx.send({ origin: owner.address }).isMined();
   }, 30_000);
 
   // /**

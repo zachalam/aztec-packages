@@ -6,7 +6,7 @@ use crate::context::{
 };
 use crate::note::lifecycle::{create_note, create_note_hash_from_public, destroy_note};
 use crate::note::{
-    note_getter::{get_notes, ensure_note_exists, ensure_note_hash_exists},
+    note_getter::{get_notes, get_note, ensure_note_exists, ensure_note_hash_exists},
     note_getter_options::NoteGetterOptions,
     note_interface::NoteInterface,
     utils::compute_inner_note_hash,
