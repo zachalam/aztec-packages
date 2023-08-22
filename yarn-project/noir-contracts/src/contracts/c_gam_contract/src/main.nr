@@ -47,7 +47,8 @@ contract CGam {
         user_pub_key_public_storage,
         user_collection_insert,
         user_deck_insert,
-        user_deck_get
+        user_deck_get,
+        note_hash_and_nullifier
     };
 
     //*********************************/
@@ -479,5 +480,12 @@ contract CGam {
         assert(user_pub_key_public_storage().at(idx).read() == owner);
 
         // at the end we need to burn the played_cards: TODO call a private function which is going to do it
+    }
+
+    // Computes note hash and nullifier.
+    // Note 1: Needs to be defined by every contract producing logs.
+    // Note 2: Having it in all the contracts gives us the ability to compute the note hash and nullifier differently for different kind of notes.
+    unconstrained fn compute_note_hash_and_nullifier(contract_address: Field, nonce: Field, storage_slot: Field, preimage: [Field; VALUE_NOTE_LEN]) -> [Field; 4] {
+        note_hash_and_nullifier(contract_address, nonce, storage_slot, preimage)
     }
 }

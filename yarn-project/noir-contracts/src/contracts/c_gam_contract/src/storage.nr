@@ -1,33 +1,43 @@
 
 use dep::std;
-use dep::aztec::abi;
-use dep::aztec::state_vars::public_state::PublicState;
-use dep::aztec::abi::PrivateContextInputs;
-use dep::aztec::abi::PublicContextInputs;
-use dep::aztec::context::PrivateContext;
-use dep::aztec::types::point::Point;
-use dep::aztec::public_call_stack_item::PublicCallStackItem;
-use dep::aztec::note::note_getter::NoteGetterOptions;
-use dep::value_note::filter::{get_max_notes, get_1_note};
-use dep::aztec::types::type_serialisation::field_serialisation::FieldSerialisationMethods;
-use dep::aztec::types::type_serialisation::field_serialisation::FIELD_SERIALISED_LEN;
+
+use dep::aztec::{
+    note::{
+        note_header::NoteHeader,
+        utils as note_utils,
+    },
+    types::{
+        type_serialisation::field_serialisation::{
+            FieldSerialisationMethods,
+            FIELD_SERIALISED_LEN
+        },
+        point::Point
+    },
+    context::PrivateContext,
+    state_vars::{
+        public_state::PublicState,
+        map::Map,
+        singleton::Singleton,
+        set::Set,
+    },
+    log::emit_encrypted_log,
+};
 
 // oracles
-use dep::std::option::Option;
-use dep::aztec::oracle::get_secret_key::get_secret_key;
-use dep::aztec::log::emit_encrypted_log;
-use dep::aztec::oracle::get_public_key::get_public_key;
-use dep::aztec::state_vars::map::Map;
-use dep::aztec::state_vars::singleton::Singleton;
-use dep::aztec::state_vars::set::Set;
+use dep::aztec::oracle::{
+    get_secret_key::get_secret_key,
+    get_public_key::get_public_key,
+};
 
+// value note
 use dep::value_note::{
-    balance_utils,
-    value_note::{
-        ValueNote,
-        ValueNoteMethods,
-        VALUE_NOTE_LEN,
-    },
+        balance_utils,
+        value_note::{
+            ValueNote,
+            ValueNoteMethods,
+            VALUE_NOTE_LEN,
+        },
+        filter::{get_max_notes, get_1_note},
 };
 
 global MAX_CARDS = 2; // Limited by square root of read requests (max 4, so 2)
@@ -143,4 +153,10 @@ fn assert_own_card(
     let card_entry = user_cards_private_storage().at(card.id()).get_note(context);
     assert(card_entry.owner == owner);
     assert(card_entry.value != 0);
+}
+
+
+fn note_hash_and_nullifier(contract_address: Field, nonce: Field, storage_slot: Field, preimage: [Field; VALUE_NOTE_LEN]) -> [Field; 4] {
+    let note_header = NoteHeader { contract_address, nonce, storage_slot };
+    note_utils::compute_note_hash_and_nullifier(ValueNoteMethods, note_header, preimage)
 }
