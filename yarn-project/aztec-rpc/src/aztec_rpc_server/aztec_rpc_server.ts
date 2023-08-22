@@ -92,10 +92,10 @@ export class AztecRPCServer implements AztecRPC {
 
   public async registerAccount(privKey: PrivateKey, account: CompleteAddress) {
     const pubKey = this.keyStore.addAccount(privKey);
-    // TODO: Re-enable this check once https://github.com/AztecProtocol/aztec-packages/issues/1556 is solved
-    // if (!pubKey.equals(account.publicKey)) {
-    //   throw new Error(`Public key mismatch: ${pubKey.toString()} != ${account.publicKey.toString()}`);
-    // }
+    if (!pubKey.equals(account.publicKey)) {
+      // The derived public key must match the one provided in the complete address
+      throw new Error(`Public key mismatch: ${pubKey.toString()} != ${account.publicKey.toString()}`);
+    }
     await this.db.addCompleteAddress(account);
     this.synchroniser.addAccount(pubKey, this.keyStore);
   }
@@ -323,11 +323,18 @@ export class AztecRPCServer implements AztecRPC {
       contractAddress,
       execRequest.functionData.functionSelectorBuffer,
     );
+    const debug = await contractDataOracle.getFunctionDebugMetadata(
+      contractAddress,
+      execRequest.functionData.functionSelectorBuffer,
+    );
     const portalContract = await contractDataOracle.getPortalContractAddress(contractAddress);
 
     return {
       contractAddress,
-      functionAbi,
+      functionAbi: {
+        ...functionAbi,
+        debug,
+      },
       portalContract,
     };
   }
@@ -345,15 +352,11 @@ export class AztecRPCServer implements AztecRPC {
 
     const simulator = getAcirSimulator(this.db, this.node, this.node, this.node, this.keyStore, contractDataOracle);
 
-    try {
-      this.log('Executing simulator...');
-      const result = await simulator.run(txRequest, functionAbi, contractAddress, portalContract);
-      this.log('Simulation completed!');
+    this.log('Executing simulator...');
+    const result = await simulator.run(txRequest, functionAbi, contractAddress, portalContract);
+    this.log('Simulation completed!');
 
-      return result;
-    } catch (err: any) {
-      throw typeof err === 'string' ? new Error(err) : err; // Work around raw string being thrown
-    }
+    return result;
   }
 
   /**
@@ -421,6 +424,7 @@ export class AztecRPCServer implements AztecRPC {
     const enqueuedPublicFunctions = collectEnqueuedPublicFunctionCalls(executionResult);
 
     // HACK(#1639): Manually patches the ordering of the public call stack
+    // TODO(#757): Enforce proper ordering of enqueued public calls
     await this.patchPublicCallStackOrdering(publicInputs, enqueuedPublicFunctions);
 
     return new Tx(
@@ -433,12 +437,13 @@ export class AztecRPCServer implements AztecRPC {
     );
   }
 
-  // This is a hack to fix ordering of public calls enqueued in the call stack. Since the private kernel cannot
-  // keep track of side effects that happen after or before a nested call, we override the public call stack
+  // HACK(#1639): this is a hack to fix ordering of public calls enqueued in the call stack. Since the private kernel
+  // cannot keep track of side effects that happen after or before a nested call, we override the public call stack
   // it emits with whatever we got from the simulator collected enqueued calls. As a sanity check, we at least verify
   // that the elements are the same, so we are only tweaking their ordering.
   // See yarn-project/end-to-end/src/e2e_ordering.test.ts
   // See https://github.com/AztecProtocol/aztec-packages/issues/1615
+  // TODO(#757): Enforce proper ordering of enqueued public calls
   private async patchPublicCallStackOrdering(
     publicInputs: KernelCircuitPublicInputs,
     enqueuedPublicCalls: PublicCallRequest[],

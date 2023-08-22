@@ -37,7 +37,6 @@ use dep::value_note::{
             ValueNoteMethods,
             VALUE_NOTE_LEN,
         },
-        filter::{get_max_notes, get_1_note},
 };
 
 global MAX_CARDS = 2; // Limited by square root of read requests (max 4, so 2)

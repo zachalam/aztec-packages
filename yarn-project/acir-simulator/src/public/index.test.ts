@@ -89,7 +89,7 @@ describe('ACIR public execution simulator', () => {
 
         const storageSlot = computeSlotForMapping(new Fr(1n), recipient.toField(), circuitsWasm);
         expect(result.contractStorageUpdateRequests).toEqual([
-          { storageSlot, oldValue: previousBalance, newValue: expectedBalance },
+          { storageSlot, oldValue: previousBalance, newValue: expectedBalance, sideEffectCounter: 1 }, // 0th is a read
         ]);
 
         expect(result.contractStorageReads).toEqual([]);
@@ -157,8 +157,18 @@ describe('ACIR public execution simulator', () => {
         expect(result.returnValues[0]).toEqual(expectedRecipientBalance);
 
         expect(result.contractStorageUpdateRequests).toEqual([
-          { storageSlot: senderStorageSlot, oldValue: senderBalance, newValue: expectedSenderBalance },
-          { storageSlot: recipientStorageSlot, oldValue: recipientBalance, newValue: expectedRecipientBalance },
+          {
+            storageSlot: senderStorageSlot,
+            oldValue: senderBalance,
+            newValue: expectedSenderBalance,
+            sideEffectCounter: 2,
+          }, // 0th, 1st are reads
+          {
+            storageSlot: recipientStorageSlot,
+            oldValue: recipientBalance,
+            newValue: expectedRecipientBalance,
+            sideEffectCounter: 3,
+          },
         ]);
 
         expect(result.contractStorageReads).toEqual([]);
@@ -239,9 +249,8 @@ describe('ACIR public execution simulator', () => {
         const globalVariables = new GlobalVariables(new Fr(69), new Fr(420), new Fr(1), new Fr(7));
 
         if (isInternal === undefined) {
-          // The error is don't seem to be propagated, but can see it in the logger.
-          await expect(executor.execute(execution, globalVariables)).rejects.toBe(
-            'Error awaiting `foreign_call_handler`: Unknown',
+          await expect(executor.execute(execution, globalVariables)).rejects.toThrowError(
+            /ContractsDb don't contain isInternal for/,
           );
         } else {
           const result = await executor.execute(execution, globalVariables);
