@@ -15,19 +15,19 @@ use dep::aztec::types::type_serialisation::field_serialisation::FIELD_SERIALISED
 // oracles
 use dep::std::option::Option;
 use dep::aztec::oracle::get_secret_key::get_secret_key;
-use dep::aztec::oracle::logs::emit_encrypted_log;
-use dep::aztec::oracle::logs::emit_unencrypted_log;
+use dep::aztec::log::emit_encrypted_log;
+use dep::aztec::oracle::get_public_key::get_public_key;
 use dep::aztec::state_vars::map::Map;
 use dep::aztec::state_vars::singleton::Singleton;
 use dep::aztec::state_vars::set::Set;
 
 use dep::value_note::{
-        balance_utils,
-        value_note::{
-            ValueNote,
-            ValueNoteMethods,
-            VALUE_NOTE_LEN,
-        },
+    balance_utils,
+    value_note::{
+        ValueNote,
+        ValueNoteMethods,
+        VALUE_NOTE_LEN,
+    },
 };
 
 global MAX_CARDS = 2; // Limited by square root of read requests (max 4, so 2)
@@ -61,8 +61,8 @@ impl Card {
     }
 }
 
-fn user_cards_private_storage() -> Map<Set<ValueNote, VALUE_NOTE_LEN>> {
-    Map::new(1, |s| Set::new(s, ValueNoteMethods))
+fn user_cards_private_storage() -> Map<Singleton<ValueNote, VALUE_NOTE_LEN>> {
+    Map::new(1, |s| Singleton::new(s, ValueNoteMethods))
 }
 fn user_decks_private_storage() -> Map<Singleton<ValueNote, VALUE_NOTE_LEN>> {
     Map::new(2, |s| Singleton::new(s, ValueNoteMethods))
@@ -99,7 +99,23 @@ fn user_pub_key_public_storage() -> Map<PublicState<Field, FIELD_SERIALISED_LEN>
 }
 
 fn user_collection_insert(context: &mut PrivateContext, owner: Field, card: Card) {
-    user_cards_private_storage().at(card.id()).insert(context, &mut ValueNote::new(card.id(), owner))
+    let card_entry = user_cards_private_storage().at(card.id());
+    let mut card_note = ValueNote::new(1, owner);
+    if card_entry.is_initialised() {
+        let old_card = card_entry.get_note(context);
+        card_note = ValueNote::new(old_card.value + 1, owner);
+        card_entry.replace(context,  &mut card_note);
+    } else {
+        card_entry.initialise(context, &mut card_note);
+    }
+
+    emit_encrypted_log(
+        context,
+        (*context).this_address(),
+        card_entry.storage_slot,
+        get_public_key(owner),
+        card_note.serialise(),
+    );
 }
 
 //TODO HACK needed why can't comptime decay to normal Field when passed to pedersen?
@@ -109,8 +125,8 @@ fn user_deck_insert(context: &mut PrivateContext, owner: Field, game_id: Field, 
     user_decks_private_storage().at(idx).replace(context, &mut card_note)
 }
 
-fn user_deck_get(context: &mut PrivateContext, owner: Point, game_id: Field, i: Field) -> ValueNote {
-    let idx = std::hash::pedersen([owner.x, game_id, i])[0];
+fn user_deck_get(context: &mut PrivateContext, owner: Field, game_id: Field, i: Field) -> ValueNote {
+    let idx = std::hash::pedersen([owner, game_id, i])[0];
     user_decks_private_storage().at(idx).get_note(context)
 }
 
@@ -122,8 +138,9 @@ fn x<T>(x: T) -> T {
 fn assert_own_card(
     context: &mut PrivateContext,
     card: Card, 
-    owner: Point
+    owner: Field
 ) {
-    let note = user_decks_private_storage().at(card.id()).get_note(context);
-    assert(owner.x == note.value);
+    let card_entry = user_cards_private_storage().at(card.id()).get_note(context);
+    assert(card_entry.owner == owner);
+    assert(card_entry.value != 0);
 }

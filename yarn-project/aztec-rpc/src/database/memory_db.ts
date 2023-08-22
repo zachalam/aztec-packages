@@ -55,11 +55,13 @@ export class MemoryDB extends MemoryContractDatabase implements Database {
   }
 
   public getNoteSpendingInfo(contract: AztecAddress, storageSlot: Fr) {
+    console.log('Stored notes:', this.noteSpendingInfoTable.length);
     const res = this.noteSpendingInfoTable.filter(
       noteSpendingInfo =>
         noteSpendingInfo.contractAddress.equals(contract) &&
         noteSpendingInfo.storageSlot.toBuffer().equals(storageSlot.toBuffer()),
     );
+    console.log('Matching notes:', res.length);
     return Promise.resolve(res);
   }
 

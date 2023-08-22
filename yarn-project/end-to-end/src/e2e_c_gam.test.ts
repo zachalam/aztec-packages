@@ -47,11 +47,11 @@ describe('e2e_c_gam_contract', () => {
     logger: DebugLogger,
   ): Promise<bigint[]> => {
     const seed = 1n;
-    const tx: ContractFunctionInteraction = deployedContract.methods.buy_pack(seed, account.publicKey);
-    await tx.send({ origin: account.address }).isMined();
+    const tx: ContractFunctionInteraction = deployedContract.methods.buy_pack(seed, account.address);
+    await tx.send({ origin: account.address }).wait();
     logger(`We bought our pack!`);
     const cardData = await deployedContract.methods
-      .get_pack_cards_unconstrained(seed, account.publicKey)
+      .get_pack_cards_unconstrained(seed, account.address)
       .view({ from: account.address });
     return cardData;
   };
@@ -69,10 +69,11 @@ describe('e2e_c_gam_contract', () => {
     // Test that we have received the expected card data
     expect(cardData).toEqual([328682529145n, 657365058290n, 986047587435n]);
     const gameId = 1337n; // decided off-chain
+    logger(`Joining game ${gameId}...`);
     const tx: ContractFunctionInteraction = deployedContract.methods.join_game(
       gameId,
       cardData.map(cardData => ({ inner: cardData })),
-      owner.publicKey,
+      owner.address,
       deployedContract.methods.join_game_pub.selector,
     );
     await tx.send({ origin: owner.address }).wait();

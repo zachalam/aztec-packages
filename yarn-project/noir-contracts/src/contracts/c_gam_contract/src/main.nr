@@ -27,6 +27,7 @@ contract CGam {
 
     // oracles
     use dep::aztec::oracle::get_secret_key::get_secret_key;
+    use dep::aztec::oracle::get_public_key::get_public_key;
     use dep::aztec::oracle::logs::emit_encrypted_log;
     use dep::aztec::oracle::logs::emit_unencrypted_log;
     use storage::{
@@ -78,9 +79,10 @@ contract CGam {
 
     unconstrained fn get_pack_cards_unconstrained(
         seed: Field,
-        owner: Point
+        owner: Field
     ) -> [Field; PACK_CARDS] {
-        let sk = get_secret_key(owner);
+        let public_key = get_public_key(owner);
+        let sk = get_secret_key(public_key);
         let mut user_seed = [0; 32];
         let seeds = seed.to_le_bytes(32);
         let sk_bytes = sk.to_le_bytes(32);
@@ -107,9 +109,10 @@ contract CGam {
 
     fn get_pack_cards(
         seed: Field,
-        owner: Point
+        owner: Field
     ) -> distinct pub [Field; PACK_CARDS] {
-        let sk = get_secret_key(owner);
+        let public_key = get_public_key(owner);
+        let sk = get_secret_key(public_key);
         let mut user_seed = [0; 32];
         let seeds = seed.to_le_bytes(32);
         let sk_bytes = sk.to_le_bytes(32);
@@ -140,9 +143,10 @@ contract CGam {
         inputs: PrivateContextInputs,
         //*********************************/
         seed: Field,    //public randomness
-        owner: Point,
+        owner: Field,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context = PrivateContext::new(inputs, abi::hash_args([seed, owner.x, owner.y]));
+        let mut context = PrivateContext::new(inputs, abi::hash_args([seed, owner]));
+
         // check user balance can afford the cards
         // TODO
 
@@ -158,7 +162,7 @@ contract CGam {
             let card = Card {
                 inner: card_data
             };
-            user_collection_insert(&mut context, owner.x, card);
+            user_collection_insert(&mut context, owner, card);
         }
 
         context.finish()
@@ -206,7 +210,7 @@ contract CGam {
     }
 
     // TODO should only be callable by join_game - how? check caller?
-    open fn join_game_pub(game_id: Field, owner: Point, deck_strength: Field) {
+    open fn join_game_pub(game_id: Field, owner: Field, deck_strength: Field) {
         // // we generate a user id:
         // let user_id = game_players.at(game_id).read();
         // let _1 = game_players.at(game_id).write(user_id + 1);
@@ -235,15 +239,14 @@ contract CGam {
         inputs: PrivateContextInputs,
         game_id: Field,
         user_cards: [Card; MAX_CARDS],
-        owner: Point,
+        owner: Field,
         join_game_pub_selector: Field
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
         let mut context = PrivateContext::new(inputs, abi::hash_args([
             game_id, 
             user_cards[0].id(),
             user_cards[1].id(), // Up to MAX_CARDS - 1
-            owner.x,
-            owner.y,
+            owner,
             join_game_pub_selector
         ]));
 
@@ -259,17 +262,19 @@ contract CGam {
             deck_strength + = card.strength() as u32;
         }
         deck_strength = deck_strength / (MAX_CARDS as u32);
+        let public_key = get_public_key(owner);
+
         context.call_public_function(
             inputs.call_context.storage_contract_address,
             join_game_pub_selector,
-            [game_id, owner.x, owner.y, deck_strength as Field]
+            [game_id, public_key.x, public_key.y, deck_strength as Field]
         );
 
         // TODO
         // maps the user_id to its cards = user_deck
         // TODO undo hacks
         for i in 0..MAX_CARDS {
-            user_deck_insert(&mut context, owner.x, game_id, i, i, user_cards);
+            user_deck_insert(&mut context, owner, game_id, i, i, user_cards);
         }
 
         // for i in 0..MAX_CARDS {
@@ -286,9 +291,9 @@ contract CGam {
     fn show_card(
         inputs: PrivateContextInputs,
         card: Card,
-        owner: Point
+        owner: Field
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context = PrivateContext::new(inputs, abi::hash_args([card.id(), owner.x, owner.y]));
+        let mut context = PrivateContext::new(inputs, abi::hash_args([card.id(), owner]));
         // checks that card belongs to the deck and it not already played
         assert_own_card(&mut context, card, owner);
         //call open_show_card ... TODO
@@ -305,7 +310,7 @@ contract CGam {
         user_id: Field,
         game_id: Field,
         card: Card,
-        owner: Point
+        owner: Field
     ) {
         // checks that card is not already played
         assert(played_cards_public_storage().at(card.id()).read() == 0);
@@ -341,7 +346,7 @@ contract CGam {
         let win_card = Card { inner: win_card_id };
         if win_card.strength() < card.strength() {
             let _1 = winning_card_public_storage().at(game_id).write(card.id());
-            winning_user_public_storage().at(game_id).write(owner.x);
+            winning_user_public_storage().at(game_id).write(owner);
         }
         //N.B. when you show a card, it must have strictly more strength than the others to win.
         // we could implement some rules in case of a draw
@@ -441,8 +446,8 @@ contract CGam {
         let _1 = winner_public_storage().at(game_id).write(winner_id);
     }
 
-    fn private_claim_winnings(inputs: PrivateContextInputs, game_id: Field, owner: Point) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut initialContext = PrivateContext::new(inputs, abi::hash_args([game_id, owner.x, owner.y]));
+    fn private_claim_winnings(inputs: PrivateContextInputs, game_id: Field, owner: Field) -> distinct pub abi::PrivateCircuitPublicInputs {
+        let mut initialContext = PrivateContext::new(inputs, abi::hash_args([game_id, owner]));
 
         // TODO prove we won!!!
         // TODO do we want to burn?
@@ -464,14 +469,14 @@ contract CGam {
     // // EXTERNAL
     open fn claim_winnings(
         game_id: Field,
-        owner: Point
+        owner: Field
     ) {
         let winner: Field = winner_public_storage().at(game_id).read();
         assert(winner as u8 < MAX_PLAYERS as u8);
         // match user public key with user id
         let mut idx = (game_id + winner) as Field;
         idx = idx*(idx+1)/2 + game_id;
-        assert(user_pub_key_public_storage().at(idx).read() == owner.x);
+        assert(user_pub_key_public_storage().at(idx).read() == owner);
 
         // at the end we need to burn the played_cards: TODO call a private function which is going to do it
     }
