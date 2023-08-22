@@ -127,11 +127,22 @@ fn user_collection_insert(context: &mut PrivateContext, owner: Field, card: Card
     );
 }
 
-//TODO HACK needed why can't comptime decay to normal Field when passed to pedersen?
-fn user_deck_insert(context: &mut PrivateContext, owner: Field, game_id: Field, i_hack_comptime : Field, i : Field, user_cards: [Card; MAX_CARDS])  {
-    let mut card_note = ValueNote::new(user_cards[i_hack_comptime].id(), owner);
+fn user_deck_insert(context: &mut PrivateContext, owner: Field, game_id: Field, i : Field, user_cards: [Card; MAX_CARDS])  {
+    let mut card_note = ValueNote::new(user_cards[i].id(), owner);
     let idx = std::hash::pedersen([owner, game_id, i])[0];
-    user_decks_private_storage().at(idx).replace(context, &mut card_note)
+    let deck_entry = user_decks_private_storage().at(idx);
+    if deck_entry.is_initialised() {
+        deck_entry.replace(context, &mut card_note);
+    } else {
+        deck_entry.initialise(context, &mut card_note);
+    }
+    emit_encrypted_log(
+        context,
+        (*context).this_address(),
+        deck_entry.storage_slot,
+        get_public_key(owner),
+        card_note.serialise(),
+    );
 }
 
 fn user_deck_get(context: &mut PrivateContext, owner: Field, game_id: Field, i: Field) -> ValueNote {

@@ -80,9 +80,9 @@ contract CGam {
 
     unconstrained fn get_pack_cards_unconstrained(
         seed: Field,
-        owner: Field
+        ownerAddress: Field
     ) -> [Field; PACK_CARDS] {
-        let public_key = get_public_key(owner);
+        let public_key = get_public_key(ownerAddress);
         let sk = get_secret_key(public_key);
         let mut user_seed = [0; 32];
         let seeds = seed.to_le_bytes(32);
@@ -110,9 +110,9 @@ contract CGam {
 
     fn get_pack_cards(
         seed: Field,
-        owner: Field
+        ownerAddress: Field
     ) -> distinct pub [Field; PACK_CARDS] {
-        let public_key = get_public_key(owner);
+        let public_key = get_public_key(ownerAddress);
         let sk = get_secret_key(public_key);
         let mut user_seed = [0; 32];
         let seeds = seed.to_le_bytes(32);
@@ -144,9 +144,9 @@ contract CGam {
         inputs: PrivateContextInputs,
         //*********************************/
         seed: Field,    //public randomness
-        owner: Field,
+        ownerAddress: Field,
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context = PrivateContext::new(inputs, abi::hash_args([seed, owner]));
+        let mut context = PrivateContext::new(inputs, abi::hash_args([seed, ownerAddress]));
 
         // check user balance can afford the cards
         // TODO
@@ -158,12 +158,12 @@ contract CGam {
         // TODO
 
         // we generate PACK_CARDS cards
-        let pack_cards = get_pack_cards(seed, owner);
+        let pack_cards = get_pack_cards(seed, ownerAddress);
         for card_data in pack_cards {
             let card = Card {
                 inner: card_data
             };
-            user_collection_insert(&mut context, owner, card);
+            user_collection_insert(&mut context, ownerAddress, card);
         }
 
         context.finish()
@@ -211,7 +211,8 @@ contract CGam {
     }
 
     // TODO should only be callable by join_game - how? check caller?
-    open fn join_game_pub(game_id: Field, owner: Field, deck_strength: Field) {
+    open fn join_game_pub(inputs: PublicContextInputs, game_id: Field, ownerAddress: Field, deck_strength: Field)  -> pub abi::PublicCircuitPublicInputs {
+        let mut context = PublicContext::new(inputs, abi::hash_args([game_id, ownerAddress, deck_strength]));
         // // we generate a user id:
         // let user_id = game_players.at(game_id).read();
         // let _1 = game_players.at(game_id).write(user_id + 1);
@@ -219,10 +220,10 @@ contract CGam {
         // // we associate the user_id to the user pub key
         // let mut idx = (game_id + user_id) as Field;
         // idx = idx*(idx+1)/2 + game_id;
-        // let _4 = user_pub_key.at(idx).write(owner.x);
+        // let _4 = user_pub_key.at(idx).write(ownerAddress.x);
         
         // // store the player strength
-        // let user_hash = std::hash::pedersen([owner.x, game_id])[0];
+        // let user_hash = std::hash::pedersen([ownerAddress.x, game_id])[0];
         // let _3 = deck_strength_storage.at(user_hash).write(deck_strength as Field);
         // // user has not yet played
         // let _2 = users_plays.at(user_hash).write(0);
@@ -230,6 +231,7 @@ contract CGam {
         // if user_id == num_players.at(game_id).read() {
         //     start_game(game_id);
         // }
+        context.finish()
     }
 
     /// join_game is called with a random UUID that is computed offchain and communicated to other players (possibly onchain).
@@ -240,14 +242,14 @@ contract CGam {
         inputs: PrivateContextInputs,
         game_id: Field,
         user_cards: [Card; MAX_CARDS],
-        owner: Field,
+        ownerAddress: Field,
         join_game_pub_selector: Field
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
         let mut context = PrivateContext::new(inputs, abi::hash_args([
             game_id, 
             user_cards[0].id(),
             user_cards[1].id(), // Up to MAX_CARDS - 1
-            owner,
+            ownerAddress,
             join_game_pub_selector
         ]));
 
@@ -255,7 +257,7 @@ contract CGam {
 
         // // checks that cards belong to the user
         for i in 0..MAX_CARDS {
-            assert_own_card(&mut context, user_cards[i], owner);
+            assert_own_card(&mut context, user_cards[i], ownerAddress);
         }
         // compute the deck strength
         let mut deck_strength: u32 = 0;
@@ -263,19 +265,18 @@ contract CGam {
             deck_strength + = card.strength() as u32;
         }
         deck_strength = deck_strength / (MAX_CARDS as u32);
-        let public_key = get_public_key(owner);
 
         context.call_public_function(
             inputs.call_context.storage_contract_address,
             join_game_pub_selector,
-            [game_id, public_key.x, public_key.y, deck_strength as Field]
+            [game_id, ownerAddress, deck_strength as Field]
         );
 
         // TODO
         // maps the user_id to its cards = user_deck
         // TODO undo hacks
         for i in 0..MAX_CARDS {
-            user_deck_insert(&mut context, owner, game_id, i, i, user_cards);
+            user_deck_insert(&mut context, ownerAddress, game_id, i, user_cards);
         }
 
         // for i in 0..MAX_CARDS {
@@ -292,11 +293,11 @@ contract CGam {
     fn show_card(
         inputs: PrivateContextInputs,
         card: Card,
-        owner: Field
+        ownerAddress: Field
     ) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut context = PrivateContext::new(inputs, abi::hash_args([card.id(), owner]));
+        let mut context = PrivateContext::new(inputs, abi::hash_args([card.id(), ownerAddress]));
         // checks that card belongs to the deck and it not already played
-        assert_own_card(&mut context, card, owner);
+        assert_own_card(&mut context, card, ownerAddress);
         //call open_show_card ... TODO
         context.finish()
     }
@@ -311,14 +312,14 @@ contract CGam {
         user_id: Field,
         game_id: Field,
         card: Card,
-        owner: Field
+        ownerAddress: Field
     ) {
         // checks that card is not already played
         assert(played_cards_public_storage().at(card.id()).read() == 0);
 
         // let card_note = Note {
         //     value: card.id(),
-        //     owner: owner,
+        //     ownerAddress: ownerAddress,
         //     is_real: true,
         // };
         ///////////////////////////////////////////////
@@ -347,7 +348,7 @@ contract CGam {
         let win_card = Card { inner: win_card_id };
         if win_card.strength() < card.strength() {
             let _1 = winning_card_public_storage().at(game_id).write(card.id());
-            winning_user_public_storage().at(game_id).write(owner);
+            winning_user_public_storage().at(game_id).write(ownerAddress);
         }
         //N.B. when you show a card, it must have strictly more strength than the others to win.
         // we could implement some rules in case of a draw
@@ -447,8 +448,8 @@ contract CGam {
         let _1 = winner_public_storage().at(game_id).write(winner_id);
     }
 
-    fn private_claim_winnings(inputs: PrivateContextInputs, game_id: Field, owner: Field) -> distinct pub abi::PrivateCircuitPublicInputs {
-        let mut initialContext = PrivateContext::new(inputs, abi::hash_args([game_id, owner]));
+    fn private_claim_winnings(inputs: PrivateContextInputs, game_id: Field, ownerAddress: Field) -> distinct pub abi::PrivateCircuitPublicInputs {
+        let mut initialContext = PrivateContext::new(inputs, abi::hash_args([game_id, ownerAddress]));
 
         // TODO prove we won!!!
         // TODO do we want to burn?
@@ -470,14 +471,14 @@ contract CGam {
     // // EXTERNAL
     open fn claim_winnings(
         game_id: Field,
-        owner: Field
+        ownerAddress: Field
     ) {
         let winner: Field = winner_public_storage().at(game_id).read();
         assert(winner as u8 < MAX_PLAYERS as u8);
         // match user public key with user id
         let mut idx = (game_id + winner) as Field;
         idx = idx*(idx+1)/2 + game_id;
-        assert(user_pub_key_public_storage().at(idx).read() == owner);
+        assert(user_pub_key_public_storage().at(idx).read() == ownerAddress);
 
         // at the end we need to burn the played_cards: TODO call a private function which is going to do it
     }
