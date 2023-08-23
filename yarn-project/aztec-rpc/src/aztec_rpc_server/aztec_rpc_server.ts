@@ -10,6 +10,7 @@ import {
   FunctionData,
   KernelCircuitPublicInputs,
   MAX_PUBLIC_CALL_STACK_LENGTH_PER_TX,
+  PartialAddress,
   PrivateKey,
   PublicCallRequest,
 } from '@aztec/circuits.js';
@@ -90,13 +91,10 @@ export class AztecRPCServer implements AztecRPC {
     this.log.info('Stopped');
   }
 
-  public async registerAccount(privKey: PrivateKey, account: CompleteAddress) {
+  public async registerAccount(privKey: PrivateKey, partialAddress: PartialAddress) {
     const pubKey = this.keyStore.addAccount(privKey);
-    if (!pubKey.equals(account.publicKey)) {
-      // The derived public key must match the one provided in the complete address
-      throw new Error(`Public key mismatch: ${pubKey.toString()} != ${account.publicKey.toString()}`);
-    }
-    await this.db.addCompleteAddress(account);
+    const completeAddress = await CompleteAddress.fromPrivateKeyAndPartialAddress(privKey, partialAddress);
+    await this.db.addCompleteAddress(completeAddress);
     this.synchroniser.addAccount(pubKey, this.keyStore);
   }
 
@@ -157,9 +155,9 @@ export class AztecRPCServer implements AztecRPC {
   }
 
   public async getBlock(blockNumber: number): Promise<L2Block | undefined> {
-    // If a negative block number is provided the current block height is fetched.
+    // If a negative block number is provided the current block number is fetched.
     if (blockNumber < 0) {
-      blockNumber = await this.node.getBlockHeight();
+      blockNumber = await this.node.getBlockNumber();
     }
     return await this.node.getBlock(blockNumber);
   }
@@ -243,8 +241,8 @@ export class AztecRPCServer implements AztecRPC {
     return partialReceipt;
   }
 
-  async getBlockNum(): Promise<number> {
-    return await this.node.getBlockHeight();
+  async getBlockNumber(): Promise<number> {
+    return await this.node.getBlockNumber();
   }
 
   public async getContractDataAndBytecode(contractAddress: AztecAddress): Promise<ContractDataAndBytecode | undefined> {
