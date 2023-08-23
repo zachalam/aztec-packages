@@ -210,27 +210,26 @@ contract CGam {
         // }
     }
 
-    // TODO should only be callable by join_game - how? check caller?
-    open fn join_game_pub(inputs: PublicContextInputs, game_id: Field, ownerAddress: Field, deck_strength: Field)  -> pub abi::PublicCircuitPublicInputs {
+    open internal fn join_game_pub(inputs: PublicContextInputs, game_id: Field, ownerAddress: Field, deck_strength: Field)  -> pub abi::PublicCircuitPublicInputs {
         let mut context = PublicContext::new(inputs, abi::hash_args([game_id, ownerAddress, deck_strength]));
-        // // we generate a user id:
-        // let user_id = game_players.at(game_id).read();
-        // let _1 = game_players.at(game_id).write(user_id + 1);
+        // we generate a user id:
+        let user_id = player_order_public_storage().at(game_id).read();
+        let _1 = player_order_public_storage().at(game_id).write(user_id + 1);
 
-        // // we associate the user_id to the user pub key
-        // let mut idx = (game_id + user_id) as Field;
-        // idx = idx*(idx+1)/2 + game_id;
-        // let _4 = user_pub_key.at(idx).write(ownerAddress.x);
-        
-        // // store the player strength
-        // let user_hash = std::hash::pedersen([ownerAddress.x, game_id])[0];
-        // let _3 = deck_strength_storage.at(user_hash).write(deck_strength as Field);
-        // // user has not yet played
-        // let _2 = users_plays.at(user_hash).write(0);
+        // we associate the user_id to the user pub key
+        let mut idx = (game_id + user_id) as Field;
+        idx = idx*(idx+1)/2 + game_id;
+        let _4 = user_pub_key.at(idx).write(ownerAddress.x);
 
-        // if user_id == num_players.at(game_id).read() {
-        //     start_game(game_id);
-        // }
+        // store the player strength
+        let user_hash = std::hash::pedersen([ownerAddress.x, game_id])[0];
+        let _3 = deck_strength_storage.at(user_hash).write(deck_strength as Field);
+        // user has not yet played
+        let _2 = users_plays.at(user_hash).write(0);
+
+        if user_id == num_players.at(game_id).read() {
+            start_game(game_id);
+        }
         context.finish()
     }
 
@@ -272,9 +271,7 @@ contract CGam {
             [game_id, ownerAddress, deck_strength as Field]
         );
 
-        // TODO
         // maps the user_id to its cards = user_deck
-        // TODO undo hacks
         for i in 0..MAX_CARDS {
             user_deck_insert(&mut context, ownerAddress, game_id, i, user_cards);
         }
