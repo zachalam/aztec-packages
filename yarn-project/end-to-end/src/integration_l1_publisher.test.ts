@@ -11,10 +11,10 @@ import {
   PrivateKey,
   PublicDataUpdateRequest,
   makeTuple,
-  range,
 } from '@aztec/circuits.js';
 import { fr, makeNewContractData, makeProof } from '@aztec/circuits.js/factories';
 import { deployL1Contracts } from '@aztec/ethereum';
+import { range } from '@aztec/foundation/collection';
 import { EthAddress } from '@aztec/foundation/eth-address';
 import { Fr } from '@aztec/foundation/fields';
 import { createDebugLogger } from '@aztec/foundation/log';

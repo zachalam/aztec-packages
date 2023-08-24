@@ -1,9 +1,10 @@
 import { toBigIntBE, toBufferBE } from '@aztec/foundation/bigint-buffer';
+import { range } from '@aztec/foundation/collection';
 import { Fr } from '@aztec/foundation/fields';
 import { BufferReader, Tuple } from '@aztec/foundation/serialize';
 
 import { PRIVATE_DATA_TREE_HEIGHT } from '../cbind/constants.gen.js';
-import { assertMemberLength, range } from '../utils/jsUtils.js';
+import { assertMemberLength } from '../utils/jsUtils.js';
 import { serializeToBuffer } from '../utils/serialize.js';
 
 /**
@@ -86,9 +87,4 @@ export class MembershipWitness<N extends number> {
     const siblingPath = reader.readBufferArray() as Tuple<Buffer, N>;
     return this.fromBufferArray(leafIndex, siblingPath);
   }
-
-  // import { SiblingPath } from '@aztec/merkle-tree';
-  //   static fromSiblingPath<N extends number>(leafIndex: bigint, siblingPath: SiblingPath<N>): MembershipWitness<N> {
-  //     return new MembershipWitness<N>(siblingPath.pathSize, leafIndex, siblingPath.toFieldArray() as Tuple<Fr, N>);
-  //   }
 }

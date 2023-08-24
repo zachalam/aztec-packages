@@ -15,7 +15,7 @@ import { ContractDeployer, EntrypointCollection, StoredKeyAccountEntrypoint, gen
 export async function createAccounts(
   aztecRpcClient: AztecRPC,
   accountContractAbi: ContractAbi,
-  privateKey?: PrivateKey,
+  privateKeys: PrivateKey[] = [],
   salt = Fr.random(),
   numberOfAccounts = 1,
   logger = createDebugLogger('aztec:aztec.js:accounts'),
@@ -24,7 +24,7 @@ export async function createAccounts(
 
   for (let i = 0; i < numberOfAccounts; ++i) {
     // TODO(#662): Let the aztec rpc server generate the keypair rather than hardcoding the private key
-    const privKey = i == 0 && privateKey ? privateKey : PrivateKey.random();
+    const privKey = !privateKeys[i] ? privateKeys[i] : PrivateKey.random();
     const publicKey = await generatePublicKey(privKey);
     const deploymentInfo = await getContractDeploymentInfo(accountContractAbi, [], salt, publicKey);
     await aztecRpcClient.registerAccount(privKey, deploymentInfo.completeAddress.partialAddress);

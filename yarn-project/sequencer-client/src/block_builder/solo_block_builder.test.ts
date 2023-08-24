@@ -16,7 +16,6 @@ import {
   PublicDataUpdateRequest,
   RootRollupPublicInputs,
   makeTuple,
-  range,
 } from '@aztec/circuits.js';
 import { computeBlockHashWithGlobals, computeContractLeaf } from '@aztec/circuits.js/abis';
 import {
@@ -29,6 +28,7 @@ import {
   makeRootRollupPublicInputs,
 } from '@aztec/circuits.js/factories';
 import { toBufferBE } from '@aztec/foundation/bigint-buffer';
+import { range } from '@aztec/foundation/collection';
 import { to2Fields } from '@aztec/foundation/serialize';
 import {
   ContractData,

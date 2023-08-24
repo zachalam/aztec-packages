@@ -1,4 +1,5 @@
 import { AztecAddress } from '@aztec/foundation/aztec-address';
+import { range } from '@aztec/foundation/collection';
 import { EthAddress } from '@aztec/foundation/eth-address';
 import { mapTuple, numToUInt32BE } from '@aztec/foundation/serialize';
 
@@ -86,7 +87,6 @@ import {
   WitnessedPublicCallData,
   makeHalfFullTuple,
   makeTuple,
-  range,
 } from '../index.js';
 import { GlobalVariables } from '../structs/global_variables.js';
 

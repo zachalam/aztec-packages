@@ -1,9 +1,10 @@
 import { toBufferBE } from '@aztec/foundation/bigint-buffer';
+import { range } from '@aztec/foundation/collection';
 import { Fr } from '@aztec/foundation/fields';
 import { BufferReader, Tuple } from '@aztec/foundation/serialize';
 
 import { MAX_NEW_COMMITMENTS_PER_CALL, PRIVATE_DATA_TREE_HEIGHT } from '../cbind/constants.gen.js';
-import { assertMemberLength, makeTuple, range } from '../utils/jsUtils.js';
+import { assertMemberLength, makeTuple } from '../utils/jsUtils.js';
 import { serializeToBuffer } from '../utils/serialize.js';
 import { MembershipWitness } from './membership_witness.js';
 

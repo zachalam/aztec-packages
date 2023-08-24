@@ -46,3 +46,17 @@ export function isArrayEmpty<T>(arr: T[], isEmpty: (item: T) => boolean): boolea
 export function arrayNonEmptyLength<T>(arr: T[], isEmpty: (item: T) => boolean): number {
   return arr.reduce((sum, item) => (isEmpty(item) ? sum : sum + 1), 0);
 }
+
+/**
+ * Create an array over an integer range.
+ * @param n - The number of integers.
+ * @param offset - The starting number.
+ * @returns The array of numbers.
+ */
+export function range(n: number, offset = 0) {
+  const ret: number[] = [];
+  for (let i = 0; i < n; i++) {
+    ret.push(offset + i);
+  }
+  return ret;
+}

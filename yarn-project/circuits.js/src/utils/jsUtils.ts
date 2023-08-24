@@ -3,20 +3,6 @@ import { Tuple } from '@aztec/foundation/serialize';
 export type { FieldsOf } from '@aztec/foundation/types';
 
 /**
- * Create an array over an integer range.
- * @param n - The number of integers.
- * @param offset - The starting number.
- * @returns The array of numbers.
- */
-export function range(n: number, offset = 0) {
-  const ret: number[] = [];
-  for (let i = 0; i < n; i++) {
-    ret.push(offset + i);
-  }
-  return ret;
-}
-
-/**
  * Create an array over an integer range, filled with a function 'fn'.
  * This is used over e.g. lodash because it resolved to a tuple type, needed for our fixed array type safety.
  * @param n - The number of integers.

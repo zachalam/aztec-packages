@@ -4024,7 +4024,7 @@ __metadata:
 "acvm_js@github:noir-lang/acvm-js-wasm#arv/0.22+init-pedersen":
   version: 0.22.0
   resolution: "acvm_js@https://github.com/noir-lang/acvm-js-wasm.git#commit=4ccaee804a9bbb5c8e3bb2adc74382a8fcff0d42"
-  checksum: 8f4802a4af520957a512266e3c7fb106af893209feb807d68991d374bc30d9899cdf09e3d9967d152a78e6bc8eb58e4ad397bff94f2e4b99d324b7fbfdcfbeab
+  checksum: 883eecfbd4fecf0470779d6cd89110d177f3f6e6a683f18a79c51a15718ef6a05f801444edc0e450b0912350f641cacfd73eae31f2321d14b3791b33bef0c1e8
   languageName: node
   linkType: hard
 

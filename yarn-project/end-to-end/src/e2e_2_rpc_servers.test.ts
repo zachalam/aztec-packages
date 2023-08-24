@@ -5,7 +5,7 @@ import { DebugLogger } from '@aztec/foundation/log';
 import { retryUntil } from '@aztec/foundation/retry';
 import { toBigInt } from '@aztec/foundation/serialize';
 import { ChildContract, PrivateTokenContract } from '@aztec/noir-contracts/types';
-import { AztecRPC, CompleteAddress, TxStatus } from '@aztec/types';
+import { AztecRPC, CompleteAddress, PrivateKey, TxStatus } from '@aztec/types';
 
 import {
   expectUnencryptedLogsFromLastBlockToBe,
@@ -39,7 +39,7 @@ describe('e2e_2_rpc_servers', () => {
       aztecRpcServer: aztecRpcServerB,
       accounts: accounts,
       wallet: walletB,
-    } = await setupAztecRPCServer(1, aztecNode!, null, undefined, true));
+    } = await setupAztecRPCServer([PrivateKey.random()], aztecNode!, undefined, true));
     [userB] = accounts;
   }, 100_000);
 

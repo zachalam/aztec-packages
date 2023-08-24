@@ -1,26 +1,32 @@
 import { AztecNodeService } from '@aztec/aztec-node';
 import { AztecRPCServer } from '@aztec/aztec-rpc';
-import { AztecRPC, CompleteAddress, ContractDeployer, ContractFunctionInteraction, Wallet } from '@aztec/aztec.js';
+import { AztecRPC, CompleteAddress, ContractFunctionInteraction, PrivateKey, Wallet } from '@aztec/aztec.js';
 import { DebugLogger } from '@aztec/foundation/log';
-import { CGamContract, CGamContractAbi } from '@aztec/noir-contracts/types';
+import { CGamContract } from '@aztec/noir-contracts/types';
 
-import { setup } from './fixtures/utils.js';
+import { getPrefundedTestPrivateKey, setupWithPrivateKeys } from './fixtures/utils.js';
 
 describe('e2e_c_gam_contract', () => {
   let aztecNode: AztecNodeService | undefined;
   let aztecRpcServer: AztecRPC;
-  let wallet: Wallet;
-  let accounts: CompleteAddress[];
   let logger: DebugLogger;
-  let owner: CompleteAddress;
-  // let recipient: CompleteAddress;
-
+  let player1: CompleteAddress;
+  let wallet: Wallet;
+  let player2: CompleteAddress;
   let contract: CGamContract;
 
+  const getSimplePrivateKey = (id: number) => {
+    const data = Buffer.alloc(32);
+    data.writeUInt32BE(id);
+    return new PrivateKey(data);
+  };
+
   beforeEach(async () => {
-    ({ aztecNode, aztecRpcServer, accounts, logger, wallet } = await setup(/*two accounts for 2 players*/ 2));
-    owner = accounts[0];
-    // recipient = accounts[1]; // TODO play game with this guy
+    ({ aztecNode, aztecRpcServer, wallet, logger } = await setupWithPrivateKeys([
+      getPrefundedTestPrivateKey(),
+      getSimplePrivateKey(1),
+    ]));
+    [player1, player2] = await aztecRpcServer.getAccounts();
   }, 100_000);
 
   afterEach(async () => {
@@ -32,21 +38,14 @@ describe('e2e_c_gam_contract', () => {
 
   const deployContract = async () => {
     logger(`Deploying L2 contract...`);
-    const deployer = new ContractDeployer(CGamContractAbi, aztecRpcServer);
-    const tx = deployer.deploy().send();
-    await tx.isMined();
-    const receipt = await tx.getReceipt();
-    contract = await CGamContract.at(receipt.contractAddress!, wallet);
+    const address = await CGamContract.deploy(wallet).send().deployed();
+    contract = await CGamContract.at(address.address, wallet);
     logger('L2 contract deployed');
     return contract;
   };
 
-  const buyPackAndGetData = async (
-    deployedContract: CGamContract,
-    account: CompleteAddress,
-    logger: DebugLogger,
-  ): Promise<bigint[]> => {
-    const seed = 1n;
+  const buyPack = async (deployedContract: CGamContract, account: CompleteAddress): Promise<bigint[]> => {
+    const seed = 1n; // Decided off-chain
     const tx: ContractFunctionInteraction = deployedContract.methods.buy_pack(seed, account.address);
     await tx.send({ origin: account.address }).wait();
     logger(`We bought our pack!`);
@@ -58,24 +57,29 @@ describe('e2e_c_gam_contract', () => {
 
   it('should call buy_pack and see notes', async () => {
     const deployedContract = await deployContract();
-    const cardData = await buyPackAndGetData(deployedContract, owner, logger);
-    // Test that we have received the expected card data
-    expect(cardData).toEqual([328682529145n, 657365058290n, 986047587435n]);
+    const cardData = await buyPack(deployedContract, player1);
+    expect(cardData).toEqual([348662030709n, 697324061418n, 1045986092127n]);
   }, 30_000);
 
   it('should call join_game and queue a public call', async () => {
     const deployedContract = await deployContract();
-    const cardData = await buyPackAndGetData(deployedContract, owner, logger);
-    // Test that we have received the expected card data
-    expect(cardData).toEqual([328682529145n, 657365058290n, 986047587435n]);
+    const player1Cards = await buyPack(deployedContract, player1);
+    expect(player1Cards).toEqual([348662030709n, 697324061418n, 1045986092127n]);
+    const player2Cards = await buyPack(deployedContract, player2);
+    expect(player2Cards).toEqual([348662030709n, 697324061418n, 1045986092127n]);
     const gameId = 1337n; // decided off-chain
     logger(`Joining game ${gameId}...`);
-    const tx: ContractFunctionInteraction = deployedContract.methods.join_game(
-      gameId,
-      cardData.map(cardData => ({ inner: cardData })),
-      owner.address,
-      deployedContract.methods.join_game_pub.selector,
-    );
-    await tx.send({ origin: owner.address }).wait();
+    for (const [player, cards] of [
+      [player1, player1Cards],
+      [player2, player2Cards],
+    ] as const) {
+      const tx: ContractFunctionInteraction = deployedContract.methods.join_game(
+        gameId,
+        cards.map(cardData => ({ inner: cardData })),
+        player.address,
+        deployedContract.methods.join_game_pub.selector,
+      );
+      await tx.send({ origin: player.address }).wait();
+    }
   }, 30_000);
 });

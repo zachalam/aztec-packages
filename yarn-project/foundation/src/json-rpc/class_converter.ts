@@ -1,5 +1,5 @@
+import { assert } from '../errors/index.js';
 import { hasOwnProperty } from '../types/index.js';
-import { assert } from './js_utils.js';
 
 /**
  * Represents a class compatible with our class conversion system.

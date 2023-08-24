@@ -1,7 +1,6 @@
 import { AztecNodeConfig, AztecNodeService, getConfigEnvVars } from '@aztec/aztec-node';
 import { RpcServerConfig, createAztecRPCServer, getConfigEnvVars as getRpcConfigEnvVars } from '@aztec/aztec-rpc';
 import {
-  Account as AztecAccount,
   AztecAddress,
   CheatCodes,
   Contract,
@@ -20,6 +19,7 @@ import {
 import { CompleteAddress, PrivateKey, PublicKey } from '@aztec/circuits.js';
 import { DeployL1Contracts, deployL1Contract, deployL1Contracts } from '@aztec/ethereum';
 import { ContractAbi } from '@aztec/foundation/abi';
+import { range } from '@aztec/foundation/collection';
 import { Fr } from '@aztec/foundation/fields';
 import { DebugLogger, createDebugLogger } from '@aztec/foundation/log';
 import { retryUntil } from '@aztec/foundation/retry';
@@ -128,9 +128,8 @@ const setupL1Contracts = async (l1RpcUrl: string, account: HDAccount, logger: De
  * @returns Aztec RPC server, accounts, wallets and logger.
  */
 export async function setupAztecRPCServer(
-  numberOfAccounts: number,
+  accountPrivateKeys: PrivateKey[],
   aztecNode: AztecNodeService | undefined,
-  firstPrivKey: PrivateKey | null = null,
   logger = getLogger(),
   useLogSuffix = false,
 ): Promise<{
@@ -154,32 +153,7 @@ export async function setupAztecRPCServer(
   const rpcConfig = getRpcConfigEnvVars();
   const aztecRpcServer = await createRpcServer(rpcConfig, aztecNode, logger, useLogSuffix);
 
-  const accounts: AztecAccount[] = [];
-
-  const createWalletWithAccounts = async () => {
-    if (!SANDBOX_URL) {
-      logger('RPC server created, deploying new accounts...');
-
-      // Prepare deployments
-      for (let i = 0; i < numberOfAccounts; ++i) {
-        const privateKey = i === 0 && firstPrivKey !== null ? firstPrivKey! : PrivateKey.random();
-        const account = getUnsafeSchnorrAccount(aztecRpcServer, privateKey);
-        await account.getDeployMethod().then(d => d.simulate({ contractAddressSalt: account.salt }));
-        accounts.push(account);
-      }
-
-      // Send them and await them to be mined
-      const txs = await Promise.all(accounts.map(account => account.deploy()));
-      await Promise.all(txs.map(tx => tx.wait({ interval: 0.1 })));
-      return new EntrypointWallet(aztecRpcServer, await EntrypointCollection.fromAccounts(accounts));
-    } else {
-      logger('RPC server created, constructing wallet from initial sandbox accounts...');
-      return await getSandboxAccountsWallet(aztecRpcServer);
-    }
-  };
-
-  const wallet = await createWalletWithAccounts();
-
+  const wallet = await setupAztecRPCServerWallet(aztecRpcServer, accountPrivateKeys, logger);
   return {
     aztecRpcServer: aztecRpcServer!,
     accounts: await aztecRpcServer!.getAccounts(),
@@ -189,13 +163,44 @@ export async function setupAztecRPCServer(
 }
 
 /**
- * Sets up the environment for the end-to-end tests.
+ * Sets up accounts for the Aztec RPC server.
  * @param numberOfAccounts - The number of new accounts to be created once the RPC server is initiated.
+ * @param aztecNode - The instance of an aztec node, if one is required
+ * @param firstPrivKey - The private key of the first account to be created.
+ * @param logger - The logger to be used.
+ * @param useLogSuffix - Whether to add a randomly generated suffix to the RPC server debug logs.
+ * @returns Aztec RPC server, accounts, wallets and logger.
  */
-export async function setup(
-  numberOfAccounts = 1,
-  stateLoad: string | undefined = undefined,
-): Promise<{
+export async function setupAztecRPCServerWallet(
+  aztecRpcServer: AztecRPC,
+  accountPrivateKeys: PrivateKey[],
+  logger: DebugLogger,
+) {
+  if (!SANDBOX_URL) {
+    logger('RPC server created, deploying new accounts...');
+
+    // Prepare deployments
+    const accounts = [];
+    for (const privateKey of accountPrivateKeys) {
+      const account = getUnsafeSchnorrAccount(aztecRpcServer, privateKey);
+      await account.getDeployMethod().then(d => d.simulate({ contractAddressSalt: account.salt }));
+      accounts.push(account);
+    }
+
+    // Send them and await them to be mined
+    const txs = await Promise.all(accounts.map(account => account.deploy()));
+    await Promise.all(txs.map(tx => tx.wait({ interval: 0.1 })));
+    return new EntrypointWallet(aztecRpcServer, await EntrypointCollection.fromAccounts(accounts));
+  } else {
+    logger('RPC server created, constructing wallet from initial sandbox accounts...');
+    return await getSandboxAccountsWallet(aztecRpcServer);
+  }
+}
+
+/**
+ * The result of a setup() or setupWithPrivateKeys() call.
+ */
+export interface SetupResult {
   /**
    * The Aztec Node service.
    */
@@ -228,29 +233,58 @@ export async function setup(
    * The cheat codes.
    */
   cheatCodes: CheatCodes;
-}> {
+}
+
+/**
+ * Get the prefunded test private key for the default end-to-end setup.
+ * @returns A PrivateKey.
+ */
+export function getPrefundedTestPrivateKey() {
+  const hdAccount = mnemonicToAccount(MNEMONIC);
+  const privKeyRaw = hdAccount.getHdKey().privateKey;
+  // Note: Viem's typings are conservative, this will always have a private key.
+  return new PrivateKey(Buffer.from(privKeyRaw!));
+}
+
+/**
+ * Sets up the environment for the end-to-end tests.
+ * @param numberOfAccounts - The number of new accounts to be created once the RPC server is initiated.
+ * @param stateLoad - Whether to use 'cheat codes' to load state.
+ */
+export async function setup(numberOfAccounts = 1, stateLoad: string | undefined = undefined): Promise<SetupResult> {
+  const privateKeys = range(numberOfAccounts).map(_ => PrivateKey.random());
+  privateKeys[0] = getPrefundedTestPrivateKey();
+  return await setupWithPrivateKeys(privateKeys, stateLoad);
+}
+
+/**
+ * Sets up the environment for the end-to-end tests, with one account for each private key provided.
+ * @param numberOfAccounts - The number of new accounts to be created once the RPC server is initiated.
+ * @param stateLoad - Whether to use 'cheat codes' to load state.
+ */
+export async function setupWithPrivateKeys(
+  privateKeys: PrivateKey[],
+  stateLoad: string | undefined = undefined,
+): Promise<SetupResult> {
+  const hdAccount = mnemonicToAccount(MNEMONIC);
   const config = getConfigEnvVars();
 
   if (stateLoad) {
     const ethCheatCodes = new EthCheatCodes(config.rpcUrl);
     await ethCheatCodes.loadChainState(stateLoad);
   }
-
   const logger = getLogger();
-  const hdAccount = mnemonicToAccount(MNEMONIC);
 
   const deployL1ContractsValues = await setupL1Contracts(config.rpcUrl, hdAccount, logger);
-  const privKeyRaw = hdAccount.getHdKey().privateKey;
-  const privKey = privKeyRaw === null ? null : new PrivateKey(Buffer.from(privKeyRaw));
 
-  config.publisherPrivateKey = privKey!;
+  config.publisherPrivateKey = privateKeys[0];
   config.rollupContract = deployL1ContractsValues.rollupAddress;
   config.contractDeploymentEmitterContract = deployL1ContractsValues.contractDeploymentEmitterAddress;
   config.inboxContract = deployL1ContractsValues.inboxAddress;
 
   const aztecNode = await createAztecNode(config, logger);
 
-  const { aztecRpcServer, accounts, wallet } = await setupAztecRPCServer(numberOfAccounts, aztecNode, privKey, logger);
+  const { aztecRpcServer, accounts, wallet } = await setupAztecRPCServer(privateKeys, aztecNode, logger);
 
   const cheatCodes = await CheatCodes.create(config.rpcUrl, aztecRpcServer!);
 
