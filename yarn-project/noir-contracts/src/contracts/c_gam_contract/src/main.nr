@@ -82,8 +82,7 @@ contract CGam {
         seed: Field,
         ownerAddress: Field
     ) -> [Field; PACK_CARDS] {
-        let public_key = get_public_key(ownerAddress);
-        let sk = get_secret_key(public_key.x);
+        let sk = get_secret_key(ownerAddress);
         let mut user_seed = [0; 32];
         let seeds = seed.to_le_bytes(32);
         let sk_bytes = sk.to_le_bytes(32);
@@ -112,8 +111,7 @@ contract CGam {
         seed: Field,
         ownerAddress: Field
     ) -> distinct pub [Field; PACK_CARDS] {
-        let public_key = get_public_key(ownerAddress);
-        let sk = get_secret_key(public_key.x);
+        let sk = get_secret_key(ownerAddress);
         let mut user_seed = [0; 32];
         let seeds = seed.to_le_bytes(32);
         let sk_bytes = sk.to_le_bytes(32);
