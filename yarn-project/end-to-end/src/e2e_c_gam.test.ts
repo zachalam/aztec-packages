@@ -15,12 +15,6 @@ describe('e2e_c_gam_contract', () => {
   let player2: CompleteAddress;
   let contract: CGamContract;
 
-  // const getSimplePrivateKey = (id: number) => {
-  //   const data = Buffer.alloc(32);
-  //   data.writeUInt32BE(id);
-  //   return new PrivateKey(data);
-  // };
-
   beforeEach(async () => {
     ({ aztecNode, aztecRpcServer, wallet, logger } = await setup(2));
     [player1, player2] = await aztecRpcServer.getAccounts();

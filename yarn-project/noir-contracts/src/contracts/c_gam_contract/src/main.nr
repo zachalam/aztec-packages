@@ -175,7 +175,7 @@ contract CGam {
         // let player_nb = 2; //num_players.at(game_id).read();
 
         // // no winner yet
-        // let _5 = winner.at(game_id).write(NUMBER_OF_PLAYERS + 1);
+        // winner.at(game_id).write(NUMBER_OF_PLAYERS + 1);
 
         // // get the player strength
         // let mut player_strengths = [0;NUMBER_OF_PLAYERS];
@@ -263,11 +263,11 @@ contract CGam {
         }
         deck_strength = deck_strength / (MAX_CARDS as u32);
 
-        context.call_public_function(
-            inputs.call_context.storage_contract_address,
-            join_game_pub_selector,
-            [game_id, ownerAddress, deck_strength as Field]
-        );
+        // context.call_public_function(
+        //     inputs.call_context.storage_contract_address,
+        //     join_game_pub_selector,
+        //     [game_id, ownerAddress, deck_strength as Field]
+        // );
 
         // maps the user_id to its cards = user_deck
         for i in 0..MAX_CARDS {
@@ -320,7 +320,7 @@ contract CGam {
         ///////////////////////////////////////////////
 
         // check user turn
-        let mut check = true;
+        // let mut check = true;
         for i in 0..NUMBER_OF_PLAYERS {
             let mut idx = (game_id + i) as Field;
             idx = idx*(idx+1)/2 + game_id;
@@ -342,7 +342,7 @@ contract CGam {
         let win_card_id = winning_card_public_storage().at(game_id).read();
         let win_card = Card { inner: win_card_id };
         if win_card.strength() < card.strength() {
-            let _1 = winning_card_public_storage().at(game_id).write(card.id());
+            winning_card_public_storage().at(game_id).write(card.id());
             winning_user_public_storage().at(game_id).write(ownerAddress);
         }
         //N.B. when you show a card, it must have strictly more strength than the others to win.
@@ -350,15 +350,15 @@ contract CGam {
 
         // we track the sum of points: game_points:  game_id -> points
         let points = game_points_public_storage().at(game_id).read();
-        let _4 = game_points_public_storage().at(game_id).write(points + card.points() as Field);
+        game_points_public_storage().at(game_id).write(points + card.points() as Field);
 
         // user has played
         let mut idx = (game_id + user_id) as Field;
         idx = idx*(idx+1)/2 + game_id;
-        let _3 = player_order_public_storage().at(idx).write(1);
+        player_order_public_storage().at(idx).write(1);
 
         // set the card as played
-        let _5 = played_cards_public_storage().at(card.id()).write(1);
+        played_cards_public_storage().at(card.id()).write(1);
 
         // count how players have played:
         let mut count = 0;
@@ -378,12 +378,12 @@ contract CGam {
         for i in 0..NUMBER_OF_PLAYERS {
             let mut idx = (game_id + i) as Field;
             idx = idx*(idx+1)/2 + game_id;
-            let _2 = user_plays_public_storage().at(idx).write(0);
+            user_plays_public_storage().at(idx).write(0);
         }
 
         // give the points to the winner of the turn
         let mut user_id = NUMBER_OF_PLAYERS + 1;
-        let win = winning_card_public_storage().at(game_id).read();
+        // let win = winning_card_public_storage().at(game_id).read(); TODO
         for i in 0..NUMBER_OF_PLAYERS {
             let mut idx = (game_id + i) as Field;
             idx = idx*(idx+1)/2 + game_id;
@@ -394,11 +394,11 @@ contract CGam {
         }
 
         let turn_points = game_points_public_storage().at(game_id).read();
-        let _4 = game_points_public_storage().at(game_id).write(0);
+        game_points_public_storage().at(game_id).write(0);
         let mut idx = (game_id + user_id) as Field;
         idx = idx*(idx+1)/2 + game_id;
         let current_points = user_points_public_storage().at(idx).read();
-        let _1 = user_points_public_storage().at(idx).write(current_points + turn_points);
+        user_points_public_storage().at(idx).write(current_points + turn_points);
 
         //if all cards are played, we should end the game
         // first we retrive the last player:
@@ -440,7 +440,7 @@ contract CGam {
             }
         }
         //store the winner
-        let _1 = winner_public_storage().at(game_id).write(winner_id);
+        winner_public_storage().at(game_id).write(winner_id);
     }
 
     fn private_claim_winnings(inputs: PrivateContextInputs, game_id: Field, ownerAddress: Field) -> distinct pub abi::PrivateCircuitPublicInputs {
