@@ -4,7 +4,7 @@ import { AztecRPC, CompleteAddress, ContractFunctionInteraction, PrivateKey, Wal
 import { DebugLogger } from '@aztec/foundation/log';
 import { CGamContract } from '@aztec/noir-contracts/types';
 
-import { getPrefundedTestPrivateKey, setupWithPrivateKeys } from './fixtures/utils.js';
+import { getPrefundedTestPrivateKey, setup, setupWithPrivateKeys } from './fixtures/utils.js';
 
 describe('e2e_c_gam_contract', () => {
   let aztecNode: AztecNodeService | undefined;
@@ -22,10 +22,7 @@ describe('e2e_c_gam_contract', () => {
   };
 
   beforeEach(async () => {
-    ({ aztecNode, aztecRpcServer, wallet, logger } = await setupWithPrivateKeys([
-      getPrefundedTestPrivateKey(),
-      getSimplePrivateKey(1),
-    ]));
+    ({ aztecNode, aztecRpcServer, wallet, logger } = await setup(2));
     [player1, player2] = await aztecRpcServer.getAccounts();
   }, 100_000);
 
