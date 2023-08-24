@@ -46,7 +46,7 @@ async function getBalance(contract: Contract, ownerAddress: AztecAddress) {
 async function main() {
   logger('Running ZK contract test on HTTP interface.');
 
-  wallet = await createAccounts(aztecRpcClient, SchnorrSingleKeyAccountContractAbi, [privateKey], Fr.random(), 2);
+  wallet = await createAccounts(aztecRpcClient, SchnorrSingleKeyAccountContractAbi, privateKey, Fr.random(), 2);
   const accounts = await aztecRpcClient.getAccounts();
   const [owner, account2] = accounts;
   logger(`Created ${accounts.length} accounts`);

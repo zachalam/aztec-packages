@@ -168,7 +168,7 @@ const transferWethOnL2 = async (
 async function main() {
   logger('Running L1/L2 messaging test on HTTP interface.');
 
-  wallet = await createAccounts(aztecRpcClient, SchnorrSingleKeyAccountContractAbi, [privateKey], Fr.random(), 2);
+  wallet = await createAccounts(aztecRpcClient, SchnorrSingleKeyAccountContractAbi, privateKey!, Fr.random(), 2);
   const accounts = await wallet.getAccounts();
   const [owner, receiver] = accounts;
 
@@ -236,7 +236,7 @@ async function main() {
   // 4. Send L2 to L1 message to withdraw funds and another message to swap assets.
   logger('Send L2 tx to withdraw WETH to uniswap portal and send message to swap assets on L1');
   // recipient is the uniswap portal
-  const selector = Fr.fromBuffer(wethL2Contract.methods.withdraw.selector);
+  const selector = wethL2Contract.methods.withdraw.selector;
   const minimumOutputAmount = 0n;
 
   const withdrawTx = uniswapL2Contract.methods
