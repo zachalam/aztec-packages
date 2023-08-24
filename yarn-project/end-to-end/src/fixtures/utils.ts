@@ -119,6 +119,17 @@ const setupL1Contracts = async (l1RpcUrl: string, account: HDAccount, logger: De
 };
 
 /**
+ * Get a simple deterministic private key.
+ * Note: Explicitly not for production use!
+ * @param seed - A seed for the private key.
+ * @returns The private key.
+ */
+function getSimplePrivateKey(seed: number) {
+  const data = Buffer.alloc(32);
+  data.writeUInt32BE(seed);
+  return new PrivateKey(data);
+}
+/**
  * Sets up Aztec RPC Server.
  * @param numberOfAccounts - The number of new accounts to be created once the RPC server is initiated.
  * @param aztecNode - The instance of an aztec node, if one is required
@@ -162,7 +173,7 @@ export async function setupAztecRPCServer(
 
       // Prepare deployments
       for (let i = 0; i < numberOfAccounts; ++i) {
-        const privateKey = i === 0 && firstPrivKey !== null ? firstPrivKey! : PrivateKey.random();
+        const privateKey = i === 0 && firstPrivKey !== null ? firstPrivKey! : getSimplePrivateKey(i);
         const account = getUnsafeSchnorrAccount(aztecRpcServer, privateKey);
         await account.getDeployMethod().then(d => d.simulate({ contractAddressSalt: account.salt }));
         accounts.push(account);

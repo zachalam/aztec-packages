@@ -63,7 +63,7 @@ describe('e2e_c_gam_contract', () => {
     const player1Cards = await buyPack(deployedContract, player1);
     expect(player1Cards).toEqual([348662030709n, 697324061418n, 1045986092127n]);
     const player2Cards = await buyPack(deployedContract, player2);
-    expect(player2Cards).toEqual([348662030709n, 697324061418n, 1045986092127n]);
+    expect(player2Cards).toEqual([328682529145n, 657365058290n, 986047587435n]);
     const gameId = 1337n; // decided off-chain
     logger(`Joining game ${gameId}...`);
     for (const [player, cards] of [
