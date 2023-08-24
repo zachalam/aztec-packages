@@ -2,7 +2,6 @@ import { AztecNodeService } from '@aztec/aztec-node';
 import { AztecRPCServer } from '@aztec/aztec-rpc';
 import { AztecRPC, CompleteAddress, ContractFunctionInteraction, Wallet } from '@aztec/aztec.js';
 import { DebugLogger } from '@aztec/foundation/log';
-import { CGamContract } from '@aztec/noir-contracts/types';
 
 import { setup } from './fixtures/utils.js';
 
