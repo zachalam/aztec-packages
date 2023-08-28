@@ -77,6 +77,8 @@
     "eslint-config-prettier": "^8.8.0",
     "html-webpack-plugin": "^5.5.1",
     "idb-keyval": "^6.2.1",
+    "jest-browser-globals": "^25.1.0-beta",
+    "playwright": "next",
     "prettier": "^2.8.4",
     "resolve-typescript-plugin": "^2.0.1",
     "rollup-plugin-tsconfig-paths": "^1.5.1",

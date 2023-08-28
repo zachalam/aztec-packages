@@ -20,7 +20,11 @@ export default {
   browsers: [
     playwrightLauncher({ product: 'chromium' }),
     // WebKit currently failing in comlink with "The object can not be cloned"
-    //playwrightLauncher({ product: 'webkit' }),
+    // playwrightLauncher({ product: 'webkit' }),
+    
+    // firefox seems to suffer from known bug causing
+    // Error: page.goto: Navigation to "about:blank" is interrupted by another navigation to "about:blank"
+    // more https://github.com/microsoft/playwright/issues/6202
     playwrightLauncher({ product: 'firefox' }),
   ],
   nodeResolve: { browser: true },
@@ -42,4 +46,13 @@ export default {
       timeout: 400000,
     },
   },
+
+  testRunnerHtml: testFramework => `
+    <html>
+      <head>
+        <script type="module" src="${testFramework}"></script>
+        <script type="module">import 'jest-browser-globals';</script>
+      </head>
+    </html>
+  `,  
 };
