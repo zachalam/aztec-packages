@@ -94,5 +94,5 @@ module.exports = {
     // 'jsdoc/require-returns': ['warn', { contexts }],
     // 'jsdoc/require-returns-description': ['warn', { contexts }],
   },
-  ignorePatterns: ['node_modules', 'dest*', 'dist', '*.js', '.eslintrc.cjs'],
+  ignorePatterns: ['node_modules', 'dest*', 'dist', '*.js', '.eslintrc.cjs', "test"],
 };
