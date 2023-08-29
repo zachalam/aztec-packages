@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import { Barretenberg, RawBuffer, Crs } from '../../../dest/browser/index.js';
-import { decompressSync } from 'fflate';
+import { decompressSync as gunzip } from 'fflate';
+
 
 const bytecode =
   'H4sIAAAAAAAA/+2Z326CMBTGP2SIyCTLsmw3u+ARWv5ouZuPMjN8/0fYyFo5MHbFV6KJJyG1jf16/vT8NPoG4B2/Fvw8KzvmYr4azUM7D+0Dsb+zDzuqeabdeeDqKkzYTG3tUftyhszFgx0jsZbY0dWss7WoTSj2HsW+QIyB0DiKPVPvCf7RScSa258JX8DLiVqDfu9UJjTZDl8udVeEHH1TRXYO+GuksW6p9lXVHopWl/pTFc3J1KqqT3ujja5N/VWYsmxNZQ7NqTmoRldlq891U56t8BP8NGXI8bOwfuoHYswRsS7M/PmGcYQhbFh+Y8Jmai8OYwe2WKzdYczRXATGneM5ehjH8Adj10hsGD/jNmC8JsYcE+vCzJ9vGMcYwoblNyZspvbiMN7YUYLvDmOO5iIw7gqYo4dxAn8wdo3EhvELbgPGG2LMCbEuzPz5hnGCYWOz/MaEzdReHMZbO6Zi7Q5jjuYiMO4KmKOHcQp/MHaNxIbxK24DxltizCmxLleev0vMITHmlOjXI7gfZn+aHvxeZPos/d2J1+437NXEnfAATI3ROeM8egWqryLtPOhm4F1+X3Fn/BoN4HTNOZXfdtwfcmP7BvHx78jZGwAA';
@@ -42,8 +43,8 @@ describe('Create Proof from ACIR bytecode and Verify', () => {
     const compressedByteCode = Uint8Array.from(atob(bytecode), c => c.charCodeAt(0));
     const compressedWitness = Uint8Array.from(atob(witness), c => c.charCodeAt(0));
     
-    const acirUint8Array = decompressSync(compressedByteCode);
-    const witnessUint8Array = decompressSync(compressedWitness);
+    const acirUint8Array = gunzip(compressedByteCode);
+    const witnessUint8Array = gunzip(compressedWitness);
     
     const isRecursive = false;
     await api.commonInitSlabAllocator(CIRCUIT_SIZE);
