@@ -19,7 +19,8 @@ import {
   makeEmptyProof,
   makeTuple,
 } from '@aztec/circuits.js';
-import { assertLength } from '@aztec/foundation/serialize';
+import { makeEmptyReadRequestMembershipWitness } from '@aztec/circuits.js/factories';
+import { Tuple, assertLength } from '@aztec/foundation/serialize';
 
 import { KernelProofCreator, ProofCreator, ProofOutput, ProofOutputFinal } from './proof_creator.js';
 import { ProvingDataOracle } from './proving_data_oracle.js';
@@ -132,7 +133,7 @@ export class KernelProver {
       const privateCallData = await this.createPrivateCallData(
         currentExecution,
         readRequestMembershipWitnesses,
-        privateCallStackPreimages,
+        makeTuple(MAX_PRIVATE_CALL_STACK_LENGTH_PER_CALL, i => privateCallStackPreimages[i], 0),
       );
 
       if (firstIteration) {
@@ -182,7 +183,7 @@ export class KernelProver {
   private async createPrivateCallData(
     { callStackItem, vk }: ExecutionResult,
     readRequestMembershipWitnesses: ReadRequestMembershipWitness[],
-    privateCallStackPreimages: PrivateCallStackItem[],
+    privateCallStackPreimages: Tuple<PrivateCallStackItem, typeof MAX_PRIVATE_CALL_STACK_LENGTH_PER_CALL>,
   ) {
     const { contractAddress, functionData, publicInputs } = callStackItem;
     const { portalContractAddress } = publicInputs.callContext;
@@ -210,8 +211,8 @@ export class KernelProver {
       VerificationKey.fromBuffer(vk),
       functionLeafMembershipWitness,
       contractLeafMembershipWitness,
-      readRequestMembershipWitnesses,
-      portalContractAddress,
+      makeTuple(MAX_READ_REQUESTS_PER_CALL, makeEmptyReadRequestMembershipWitness),
+      portalContractAddress.toField(),
       acirHash,
     );
   }
