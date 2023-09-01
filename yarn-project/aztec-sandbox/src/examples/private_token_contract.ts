@@ -23,9 +23,9 @@ const SECONDARY_AMOUNT = 33n;
 async function deployZKContract(owner: AztecAddress) {
   logger('Deploying L2 contract...');
   const tx = PrivateTokenContract.deploy(aztecRpcClient, INITIAL_BALANCE, owner).send();
+  await tx.wait();
   const receipt = await tx.getReceipt();
   const contract = await PrivateTokenContract.at(receipt.contractAddress!, wallet);
-  await tx.isMined();
   logger('L2 contract deployed');
   return contract;
 }
@@ -47,27 +47,30 @@ async function main() {
   logger('Running ZK contract test on HTTP interface.');
 
   wallet = await createAccounts(aztecRpcClient, SchnorrSingleKeyAccountContractAbi, privateKey, Fr.random(), 2);
-  const accounts = await aztecRpcClient.getAccounts();
-  const [owner, account2] = accounts;
+  console.log('wallet', wallet);
+  // const accounts = await aztecRpcClient.getAccounts();
+  const accounts = await wallet.getAccounts();
+  console.log(accounts.map(acc => `${acc.address}\n`));
+  const [, , , owner, account2] = accounts;
   logger(`Created ${accounts.length} accounts`);
 
-  logger(`Created Owner account ${owner.toString()}`);
+  logger(`Created Owner account ${owner.address.toString()}`);
 
   const zkContract = await deployZKContract(owner.address);
-  const [balance1] = await zkContract.methods.getBalance(owner.address).view({ from: owner.address });
+  const balance1 = await zkContract.methods.getBalance(owner.address).view({ from: owner.address });
   logger(`Initial owner balance: ${balance1}`);
 
   // Mint more tokens
   logger(`Minting ${SECONDARY_AMOUNT} more coins`);
   const mintTx = zkContract.methods.mint(SECONDARY_AMOUNT, owner.address).send({ origin: owner.address });
-  await mintTx.isMined({ interval: 0.5 });
+  await mintTx.wait({ interval: 0.5 });
   const balanceAfterMint = await getBalance(zkContract, owner.address);
   logger(`Owner's balance is now: ${balanceAfterMint}`);
 
   // Perform a transfer
   logger(`Transferring ${SECONDARY_AMOUNT} tokens from owner to another account.`);
   const transferTx = zkContract.methods.transfer(SECONDARY_AMOUNT, account2.address).send({ origin: owner.address });
-  await transferTx.isMined({ interval: 0.5 });
+  await transferTx.wait({ interval: 0.5 });
   const balanceAfterTransfer = await getBalance(zkContract, owner.address);
   const receiverBalance = await getBalance(zkContract, account2.address);
   logger(`Owner's balance is now ${balanceAfterTransfer}`);
