@@ -3,10 +3,13 @@
 #include "init.hpp"
 #include "testing_harness.hpp"
 
+#include "aztec3/circuits/abis/kernel_circuit_public_inputs.hpp"
 #include "aztec3/circuits/apps/test_apps/basic_contract_deployment/basic_contract_deployment.hpp"
 #include "aztec3/circuits/apps/test_apps/escrow/deposit.hpp"
+#include "aztec3/utils/circuit_errors.hpp"
 
 #include <barretenberg/barretenberg.hpp>
+#include <barretenberg/serialize/test_helper.hpp>
 
 #include <gtest/gtest.h>
 
@@ -129,6 +132,11 @@ TEST_F(private_kernel_tests, circuit_cbinds)
     for (size_t i = 0; i < 10; i++) {
         ASSERT_EQ(public_inputs_buf[i], expected_public_inputs_vec[i]);
     }
+
+    auto exp_result = builder.result_or_error(public_inputs);
+    auto res = call_msgpack_cbind<decltype(exp_result)>(private_kernel__sim_init, private_inputs);
+
+    ASSERT_TRUE(exp_result.result == res.result);
 }
 
 }  // namespace aztec3::circuits::kernel::private_kernel
