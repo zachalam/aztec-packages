@@ -1,7 +1,7 @@
 # aztec3 circuits package
 # copyright 2019 Spilsbury Holdings Ltd
 
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22)
 
 # Get the full path to barretenberg. This is helpful because the required
 # relative path changes based on where in cmake the path is used.

@@ -12,7 +12,7 @@ The [`aztec3-circuits`](https://github.com/AztecProtocol/aztec3-packages) circui
 
 ### Dependencies
 
-- cmake >= 3.24
+- cmake >= 3.22
 - Ninja (used by the presets as the default generator)
 - clang16
 - clang-format

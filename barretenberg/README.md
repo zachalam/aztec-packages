@@ -9,7 +9,7 @@ As the spec solidifies, this should be less of an issue. Aztec and Barretenberg 
 
 ### Dependencies
 
-- cmake >= 3.24
+- cmake >= 3.22
 - Ninja (used by the presets as the default generator)
 - clang >= 16 or gcc >= 10
 - clang-format
