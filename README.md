@@ -2,9 +2,13 @@
 
 All the packages that make up [Aztec](https://docs.aztec.network/what-is-aztec).
 
-- [**`circuits`**](/circuits): C++ code for circuits and cryptographic functions
-- [**`l1-contracts`**](/l1-contracts): Solidity code for the Ethereum contracts that process rollups
-- [**`yarn-project`**](/yarn-project): Typescript code for client and backend
+- **`barretenberg`**: Optimized elliptic curve library for the bn128 curve, and PLONK SNARK prover
+- **`build-system`**: Our platform-agnostic build system which is (currently deployed in Circle CI)
+- **`circuits`**: C++ code for circuits and cryptographic functions
+- `docs`: Aztec docs in docusaurus, deployed to https://docs.aztec.network/
+- **`l1-contracts`**: Solidity code for the Ethereum contracts that process rollups
+- **`scripts`**: Various scripts for managing the repo
+- **`yarn-project`**: Typescript code for client and backend
 
 ## Issues Board
 
