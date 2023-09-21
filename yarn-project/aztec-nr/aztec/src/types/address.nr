@@ -26,6 +26,7 @@ struct EthereumAddress {
 
 impl EthereumAddress {
   fn new(address: Field) -> Self {
+    // assert(address <= 0xffffffffffffffffffffffffffffffffffffffff, "Value too large for an ethereum address");
     // Check that it actually will fit. Spending a lot of constraints here :grimacing:
     let bytes = address.to_be_bytes(32);
     for i in 0..12 {

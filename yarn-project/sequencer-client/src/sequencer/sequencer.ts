@@ -304,7 +304,11 @@ export class Sequencer {
    * @returns An array of L1 to L2 messages' messageKeys
    */
   protected async getPendingL1ToL2Messages(): Promise<Fr[]> {
-    return await this.l1ToL2MessageSource.getPendingL1ToL2Messages();
+    const messages = await this.l1ToL2MessageSource.getPendingL1ToL2Messages(1);
+    if (messages.length > 0) {
+      console.log(`aztec:sequencer: ${messages.length} L1 to L2 messages retrieved from archiver - ${messages[0]}`);
+    }
+    return messages;
   }
 
   /**

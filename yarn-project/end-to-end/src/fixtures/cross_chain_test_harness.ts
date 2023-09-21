@@ -42,7 +42,7 @@ export class CrossChainTestHarness {
     });
 
     // Deploy and initialize all required contracts
-    logger('Deploying and initializing token, portal and its bridge...');
+    logger('Deploying and initializing token, portal on L1, token and its bridge on L2...');
     const contracts = await deployAndInitializeStandardizedTokenAndBridgeContracts(
       wallet,
       walletClient,
@@ -129,15 +129,15 @@ export class CrossChainTestHarness {
   ) {}
 
   async generateClaimSecret(): Promise<[Fr, Fr]> {
-    this.logger("Generating a claim secret using pedersen's hash function");
+    // this.logger("Generating a claim secret using pedersen's hash function");
     const secret = Fr.random();
     const secretHash = await computeMessageSecretHash(secret);
-    this.logger('Generated claim secret: ', secretHash.toString(true));
+    // this.logger('Generated claim secret: ', secretHash.toString(true));
     return [secret, secretHash];
   }
 
   async mintTokensOnL1(amount: bigint) {
-    this.logger('Minting tokens on L1');
+    // this.logger('Minting tokens on L1');
     await this.underlyingERC20.write.mint([this.ethAccount.toString(), amount], {} as any);
     expect(await this.underlyingERC20.read.balanceOf([this.ethAccount.toString()])).toBe(amount);
   }
@@ -152,7 +152,7 @@ export class CrossChainTestHarness {
     // Deposit tokens to the TokenPortal
     const deadline = 2 ** 32 - 1; // max uint32 - 1
 
-    this.logger('Sending messages to L1 portal to be consumed publicly');
+    // this.logger('Sending messages to L1 portal to be consumed publicly');
     const args = [
       this.ownerAddress.toString(),
       bridgeAmount,
@@ -178,7 +178,7 @@ export class CrossChainTestHarness {
     // Deposit tokens to the TokenPortal
     const deadline = 2 ** 32 - 1; // max uint32 - 1
 
-    this.logger('Sending messages to L1 portal to be consumed privately');
+    // this.logger('Sending messages to L1 portal to be consumed privately');
     const args = [
       bridgeAmount,
       deadline,
@@ -215,7 +215,7 @@ export class CrossChainTestHarness {
     messageKey: Fr,
     secretForL2MessageConsumption: Fr,
   ) {
-    this.logger('Consuming messages on L2 secretively');
+    // this.logger('Consuming messages on L2 secretively');
     // Call the mint tokens function on the Aztec.nr contract
     const consumptionTx = this.l2Bridge.methods
       .claim_private(
@@ -231,7 +231,7 @@ export class CrossChainTestHarness {
   }
 
   async consumeMessageOnAztecAndMintPublicly(bridgeAmount: bigint, messageKey: Fr, secret: Fr) {
-    this.logger('Consuming messages on L2 Publicly');
+    // this.logger('Consuming messages on L2 Publicly');
     // Call the mint tokens function on the Aztec.nr contract
     const tx = this.l2Bridge.methods
       .claim_public(
@@ -279,7 +279,7 @@ export class CrossChainTestHarness {
 
   async expectPrivateBalanceOnL2(owner: AztecAddress, expectedBalance: bigint) {
     const balance = await this.getL2PrivateBalanceOf(owner);
-    this.logger(`Account ${owner} balance: ${balance}`);
+    // this.logger(`Account ${owner} balance: ${balance}`);
     expect(balance).toBe(expectedBalance);
   }
 
@@ -289,7 +289,7 @@ export class CrossChainTestHarness {
   }
 
   async checkEntryIsNotInOutbox(withdrawAmount: bigint, callerOnL1: EthAddress = EthAddress.ZERO): Promise<Fr> {
-    this.logger('Ensure that the entry is not in outbox yet');
+    // this.logger('Ensure that the entry is not in outbox yet');
     const contractData = await this.aztecRpcServer.getContractData(this.l2Bridge.address);
     // 0xb460af94, selector for "withdraw(uint256,address,address)"
     const content = sha256ToField(
@@ -315,7 +315,7 @@ export class CrossChainTestHarness {
   }
 
   async withdrawFundsFromBridgeOnL1(withdrawAmount: bigint, entryKey: Fr) {
-    this.logger('Send L1 tx to consume entry and withdraw funds');
+    // this.logger('Send L1 tx to consume entry and withdraw funds');
     // Call function on L1 contract to consume the message
     const { request: withdrawRequest, result: withdrawEntryKey } = await this.tokenPortal.simulate.withdraw([
       withdrawAmount,
@@ -337,14 +337,14 @@ export class CrossChainTestHarness {
   }
 
   async redeemShieldPrivatelyOnL2(shieldAmount: bigint, secret: Fr) {
-    this.logger('Spending commitment in private call');
+    // this.logger('Spending commitment in private call');
     const privateTx = this.l2Token.methods.redeem_shield({ address: this.ownerAddress }, shieldAmount, secret).send();
     const privateReceipt = await privateTx.wait();
     expect(privateReceipt.status).toBe(TxStatus.MINED);
   }
 
   async unshieldTokensOnL2(unshieldAmount: bigint, nonce = Fr.ZERO) {
-    this.logger('Unshielding tokens');
+    // this.logger('Unshielding tokens');
     const unshieldTx = this.l2Token.methods
       .unshield({ address: this.ownerAddress }, { address: this.ownerAddress }, unshieldAmount, nonce)
       .send();
