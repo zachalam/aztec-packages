@@ -25,7 +25,6 @@ CircuitSchema unpack_from_file(const std::string& filename)
     std::streamsize fsize = fin.gcount();
     fin.clear();
     fin.seekg(0, std::ios_base::beg);
-    info("File size: ", fsize);
 
     CircuitSchema cir;
     char* encoded_data = (char*)aligned_alloc(64, static_cast<size_t>(fsize));
@@ -36,7 +35,7 @@ CircuitSchema unpack_from_file(const std::string& filename)
 
 /**
  * @brief Get the CircuitSchema object
- * @details Initialize the CircuitSchmea from the msgpack compatible buffer.
+ * @details Initialize the CircuitSchema from the msgpack compatible buffer.
  *
  * @param buf
  * @return CircuitSchema
@@ -57,10 +56,10 @@ CircuitSchema unpack_from_buffer(const msgpack::sbuffer& buf)
  *
  * @param circuit_info
  * @param s pointer to the global solver
- * @param equal all the variables that should be equal in both circuits
- * @param nequal all the variables that should be different in both circuits
- * @param eqall all the variables that should not be equal at the same time
- * @param neqall all the variables that should not be different at the same time
+ * @param equal The list of names of variables which should be equal in both circuits(each is equal)
+ * @param not_equal The list of names of variables which should not be equal in both circuits(each is not equal)
+ * @param equal_at_the_same_time The list of variables, where at least one pair has to be equal
+ * @param not_equal_at_the_same_time The list of variables, where at least one pair has to be distinct
  * @return std::pair<Circuit, Circuit>
  */
 template <typename FF>
