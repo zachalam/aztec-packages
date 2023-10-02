@@ -243,6 +243,7 @@ template <typename FF> void StandardCircuitBuilder_<FF>::create_poly_gate(const 
     ++this->num_gates;
 }
 
+// Interesting to look here to understand a non-circuity use of the execution trace model of thinking.
 template <typename FF>
 std::vector<uint32_t> StandardCircuitBuilder_<FF>::decompose_into_base4_accumulators(const uint32_t witness_index,
                                                                                      const size_t num_bits,

@@ -854,4 +854,36 @@ TEST(ultra_circuit_constructor, check_circuit_showcase)
     EXPECT_EQ(circuit_constructor.check_circuit(), true);
 }
 
+TEST(ultra_circuit_constructor, check_circuit_showcase)
+{
+    UltraCircuitBuilder circuit_constructor = UltraCircuitBuilder();
+    // check_circuit allows us to check correctness on the go
+
+    uint32_t my_zero = circuit_constructor.add_variable(0);
+    uint32_t x = circuit_constructor.add_variable(3);
+    uint32_t x_sqr = circuit_constructor.add_variable(9);
+    uint32_t y = circuit_constructor.add_variable(4);
+    uint32_t x_sqr = circuit_constructor.add_variable(16);
+
+    uint32_t x_sqr_cpt_1 = circuit_constructor.add_variable(15);
+    uint32_t x_sqr_cpt_2 = circuit_constructor.add_variable(1);
+    uint32_t x_sqr_cpt_sum = circuit_constructor.add_variable(16);
+
+    // x^2 + y^2 == 25
+    circuit_constructor.create_poly_gate(
+        { .a = x, .b = x, .c = x_sqr, .q_m = 1, .q_l = 0, .q_r = 0, .q_o = -1, .q_c = 0 });
+
+    circuit_constructor.create_poly_gate(
+        { .a = y, .b = y, .c = y_sqr, .q_m = 1, .q_l = 0, .q_r = 0, .q_o = -1, .q_c = 0 });
+
+    // circuit_constructor.create_poly_gate(
+    //     { .a = x_sqr, .b = y_sqr, .c = circuit_constructor.zero_idx, .q_m = 0, .q_l = 1, .q_r = 1, .q_o = 0, .q_c = -25 });
+    
+    circuit_constructor.create_poly_gate(
+        { .a = x_sqr_cpt_1, .b = x_sqr_cpt_2, .c = x_sqr_cpt_sum, .q_m = 0, .q_l = 1, .q_r = 1, .q_o = -1, .q_c = 0 });
+
+    // We can check if this works
+    EXPECT_EQ(circuit_constructor.check_circuit(), true);
+}
+
 } // namespace proof_system

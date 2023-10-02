@@ -359,8 +359,8 @@ template <typename FF> void UltraCircuitBuilder_<FF>::create_bool_gate(const uin
 }
 
 /**
- * @brief A plonk gate with disabled (set to zero) fourth wire. q_m * a * b + q_1 * a + q_2 * b + q_3
- * * c + q_const = 0
+ * @brief A plonk gate with disabled (set to zero) fourth wire. 
+ * q_m * a * b + q_1 * a + q_2 * b + q_3 c + q_const = 0
  *
  * @param in Structure containing variables and witness selectors
  */
