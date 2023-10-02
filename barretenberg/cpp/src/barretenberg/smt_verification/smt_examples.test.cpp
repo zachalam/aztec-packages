@@ -177,5 +177,27 @@ TEST(solver_use_case, solver)
     info("y = ", mvars["y"]);
 }
 
-// TODO(alex): Try setting the whole witness to be not equal at the same time, while setting inputs and outputs to be
-// equal
+// TODO(alex): Try setting the whole witness to be not equal at the same time, while setting inputs and outputs to be 
+// equal  
+
+TEST(solver_use_case, barretenberg_fr_compatibility)
+{
+    Solver s("11", { true, 0 }, 10);
+    FFTerm x = FFTerm::Var("x", &s);
+    FFTerm y = FFTerm::Var("y", &s);
+
+    FFTerm z = x * y + x * x;
+    z == FFTerm::Const("15", &s, 10);
+    x != y;
+    x != FFTerm::Const("0", &s);
+    y != FFTerm::Const("0", &s);
+
+    bool res = s.check();
+    ASSERT_TRUE(res);
+
+    std::unordered_map<std::string, cvc5::Term> vars = { { "x", x }, { "y", y } };
+    std::unordered_map<std::string, std::string> mvars = s.model(vars);
+
+    info("x = ", mvars["x"]);
+    info("y = ", mvars["y"]);
+}
