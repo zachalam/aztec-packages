@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "barretenberg/ecc/curves/bn254/fr.hpp"
 namespace smt_solver {
 
 /**
@@ -52,7 +53,7 @@ class Solver {
 
     bool check();
 
-    [[nodiscard]] std::string getResult() const
+    [[nodiscard]] const char* getResult() const
     {
         if (!checked) {
             return "No result, yet";

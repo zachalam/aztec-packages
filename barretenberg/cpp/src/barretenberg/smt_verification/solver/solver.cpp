@@ -33,7 +33,7 @@ std::unordered_map<std::string, std::string> Solver::model(std::unordered_map<st
     std::unordered_map<std::string, std::string> resulting_model;
     for (auto& term : terms) {
         std::string str_val = this->s.getValue(term.second).getFiniteFieldValue();
-        resulting_model.insert({ term.first, str_val });
+        resulting_model.insert({ term.first, str_val }); // TODO(alex): somehow convert it to fr
     }
     return resulting_model;
 }

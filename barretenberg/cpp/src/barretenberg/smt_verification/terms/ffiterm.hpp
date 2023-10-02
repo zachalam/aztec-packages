@@ -11,7 +11,7 @@ using namespace smt_solver;
  * Both of them support basic arithmetic operations: +, -, *, /.
  * Check the satisfability of a system and get it's model.
  *
- * @todo TODO(alex): mayb.. Have to patch cvc5 to create integers from hex...
+ * @todo TODO(alex): Have to patch cvc5 to create integers from hex...
  */
 class FFITerm {
   public:
@@ -37,6 +37,15 @@ class FFITerm {
     static FFITerm Var(const std::string& name, Solver* slv);
     static FFITerm Const(const std::string& val, Solver* slv, uint32_t base = 16);
 
+    FFITerm(barretenberg::fr value, Solver* s){
+        std::stringstream buf; // TODO(alex): looks bad. Would be great to create tostring() converter
+        buf << value;
+        std::string tmp = buf.str();
+        tmp[1] = '0';          // avoiding `x` in 0x prefix
+        
+        *this = this->Const(tmp, s);
+    }
+
     FFITerm& operator=(const FFITerm& right) = default;
     FFITerm& operator=(FFITerm&& right) = default;
 
@@ -44,6 +53,8 @@ class FFITerm {
     void operator+=(const FFITerm& other);
     FFITerm operator-(const FFITerm& other) const;
     void operator-=(const FFITerm& other);
+    FFITerm operator-() const;
+    
     FFITerm operator*(const FFITerm& other) const;
     void operator*=(const FFITerm& other);
     FFITerm operator/(const FFITerm& other) const;
@@ -52,6 +63,52 @@ class FFITerm {
     void operator==(const FFITerm& other) const;
     void operator!=(const FFITerm& other) const;
 
+    FFITerm& operator=(const barretenberg::fr& right){
+        *this = FFITerm(right, this->solver);
+        return *this;
+    }
+    FFITerm& operator=(barretenberg::fr&& right){
+        *this = FFITerm(right, this->solver);
+        return *this;
+    }
+
+    FFITerm operator+(const barretenberg::fr& other) const{
+        return *this + FFITerm(other, this->solver);
+    }
+    void operator+=(const barretenberg::fr& other){
+        *this += FFITerm(other, this->solver);
+    }
+    FFITerm operator-(const barretenberg::fr& other) const{
+        return *this - FFITerm(other, this->solver);
+    }
+    void operator-=(const barretenberg::fr& other){
+        *this -= FFITerm(other, this->solver);
+    }
+    FFITerm operator*(const barretenberg::fr& other) const{
+        return *this * FFITerm(other, this->solver);
+    }
+    void operator*=(const barretenberg::fr& other){
+        *this *= FFITerm(other, this->solver);
+    }
+    FFITerm operator/(const barretenberg::fr& other) const{
+        return *this / FFITerm(other, this->solver);
+    }
+    void operator/=(const barretenberg::fr& other){
+        *this /= FFITerm(other, this->solver);
+    }
+
+    void operator==(const barretenberg::fr& other) const{
+        *this == FFITerm(other, this->solver);
+    }
+    void operator!=(const barretenberg::fr& other) const{
+        *this != FFITerm(other, this->solver);
+    }
+
+    operator std::string() const
+    {
+        return term.isIntegerValue() ? term.getIntegerValue() : term.toString();
+    };
+    
     operator std::string() const { return term.isIntegerValue() ? term.getIntegerValue() : term.toString(); };
     operator cvc5::Term() const { return term; };
 
@@ -76,5 +133,29 @@ class FFITerm {
         return { res, slv };
     }
 };
+
+FFITerm operator+(const barretenberg::fr& lhs, const FFITerm& rhs){
+    return rhs + lhs;
+}
+
+FFITerm operator-(const barretenberg::fr& lhs, const FFITerm& rhs){
+    return (-rhs) + lhs;
+}
+
+FFITerm operator*(const barretenberg::fr& lhs, const FFITerm& rhs){
+    return rhs * lhs;
+}
+
+FFITerm operator/(const barretenberg::fr& lhs, const FFITerm& rhs){
+    return FFITerm(lhs, rhs.solver) / rhs;
+}
+
+void operator==(const barretenberg::fr& lhs, const FFITerm& rhs){
+    rhs == lhs;
+}
+
+void operator!=(const barretenberg::fr& lhs, const FFITerm& rhs){
+    rhs != lhs;
+}
 
 } // namespace smt_terms

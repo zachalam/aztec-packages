@@ -55,6 +55,11 @@ FFTerm FFTerm::operator-(const FFTerm& other) const
     return { res, this->solver };
 }
 
+FFTerm FFTerm::operator-() const{
+    cvc5::Term res = this->solver->s.mkTerm(cvc5::Kind::FINITE_FIELD_NEG, { this->term });
+    return { res, this-> solver};
+}
+
 void FFTerm::operator-=(const FFTerm& other)
 {
     cvc5::Term tmp_term = this->solver->s.mkTerm(cvc5::Kind::FINITE_FIELD_NEG, { other.term });

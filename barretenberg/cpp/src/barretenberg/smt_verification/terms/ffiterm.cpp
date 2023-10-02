@@ -76,6 +76,12 @@ void FFITerm::operator-=(const FFITerm& other)
         this->solver->s.mkTerm(cvc5::Kind::INTS_MODULUS, { this->term, this->modulus }); // TODO(alex): is it faster?
 }
 
+FFITerm FFITerm::operator-() const{
+    cvc5::Term res = this->solver->s.mkTerm(cvc5::Kind::NEG, { this->term });
+    res = this->solver->s.mkTerm(cvc5::Kind::INTS_MODULUS, { this->term, this->modulus });
+    return { res, this-> solver};
+}
+
 FFITerm FFITerm::operator*(const FFITerm& other) const
 {
     cvc5::Term res = solver->s.mkTerm(cvc5::Kind::MULT, { this->term, other.term });
