@@ -49,18 +49,26 @@ fn compute_note_hash_for_read_or_nullify<Note, N>(
     let get_header = note_interface.get_header;
     let header = get_header(note_with_header);
 
-    // TODO(https://github.com/AztecProtocol/aztec-packages/issues/1386)
     if (header.is_transient) {
         // If a note is transient, we just read the inner_note_hash (kernel will silo by contract address).
         compute_inner_note_hash(note_interface, note_with_header)
     } else if (header.nonce == 0) {
-        // If not transient and nonce is zero, that means we are reading a public note.
+        // TODO(https://github.com/AztecProtocol/aztec-packages/issues/1386)
+        // If not transient and nonce is zero, that means we are reading a publicly-created note.
         compute_siloed_note_hash(note_interface, note_with_header)
     } else {
-        // When nonce is nonzero, that means we are reading a settled note (from tree) created in a
-        // previous TX. So we need the unique_siloed_note_hash which has already been hashed with
-        // contract address and then nonce. This hash will match the existing leaf in the private
-        // data tree, so the kernel can just perform a membership check directly on this hash/leaf.
+        // When nonce is nonzero, that means we are reading or nullifying a settled note (from tree)
+        // created in a previous TX. So we need the unique_siloed_note_hash which has already been
+        // hashed with contract address and then nonce. This hash will match the existing leaf in
+        // the private data tree, so the kernel can just perform a membership check directly on this
+        // hash/leaf.
+
+        // IMPORTANT NOTE ON REDUNDANT SILOING BY CONTRACT ADDRESS: when this function is being used
+        // to generate a note-hash to be nullifed, it is "siloed" by the contract address. Note that
+        // this is NOT NECESSARY for protocol security! All persistable note-hashes and nullifiers
+        // are siloed BY THE KERNEL CIRCUIT. We redundantly silo note-hashes again here by contract
+        // address for computation of a nullifier, but only to achieve the property that nullifers
+        // are computed via a hash of a fully-computed private data tree leaf.
         compute_unique_siloed_note_hash(note_interface, note_with_header)
     }
 
