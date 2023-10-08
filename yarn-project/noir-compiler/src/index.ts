@@ -1,6 +1,7 @@
 import { ContractArtifact } from '@aztec/foundation/abi';
 
 import { CompileOpts, NargoContractCompiler } from './compile/nargo.js';
+import { NoirWasmContractCompiler } from './compile/noir/noir-wasm-compiler.js';
 import { generateContractArtifact } from './contract-interface-gen/abi.js';
 import NoirVersion from './noir-version.json' assert { type: 'json' };
 
@@ -19,4 +20,13 @@ export { generateContractArtifact };
  */
 export async function compileUsingNargo(projectPath: string, opts: CompileOpts = {}): Promise<ContractArtifact[]> {
   return (await new NargoContractCompiler(projectPath, opts).compile()).map(generateContractArtifact);
+}
+
+/**
+ * Compile Aztec.nr contracts in project path using a nargo binary available in the shell.
+ * @param projectPath - Path to project.
+ * @returns Compiled artifacts.
+ */
+export async function compileUsingNoirWasm(projectPath: string): Promise<ContractArtifact[]> {
+  return (await new NoirWasmContractCompiler(projectPath).compile()).map(generateContractArtifact);
 }
