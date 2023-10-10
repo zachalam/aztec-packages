@@ -27,6 +27,6 @@ export async function compileUsingNargo(projectPath: string, opts: CompileOpts =
  * @param projectPath - Path to project.
  * @returns Compiled artifacts.
  */
-export async function compileUsingNoirWasm(projectPath: string): Promise<ContractArtifact[]> {
-  return (await new NoirWasmContractCompiler(projectPath).compile()).map(generateContractArtifact);
+export async function compileUsingNoirWasm(projectPath: string, opts: CompileOpts = {}): Promise<ContractArtifact[]> {
+  return (await new NoirWasmContractCompiler(projectPath, opts).compile()).map(generateContractArtifact);
 }
