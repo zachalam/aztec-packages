@@ -1,5 +1,5 @@
 import { AztecAddress } from '@aztec/foundation/aztec-address';
-import { EthAddress } from '@aztec/foundation/eth-address';
+import { EthAddress, getAddress } from '@aztec/foundation/eth-address';
 import { mapTuple, numToUInt32BE } from '@aztec/foundation/serialize';
 
 import { computeCallStackItemHash } from '../abis/abis.js';
@@ -746,7 +746,7 @@ export function makeAppendOnlyTreeSnapshot(seed = 1): AppendOnlyTreeSnapshot {
  * @returns An eth address.
  */
 export function makeEthAddress(seed = 1): EthAddress {
-  return new EthAddress(Buffer.alloc(20, seed));
+  return getAddress('0x' + Buffer.alloc(20, seed).toString('hex'));
 }
 
 /**

@@ -1,9 +1,9 @@
-import { EthAddress } from '@aztec/foundation/eth-address';
 import { DebugLogger } from '@aztec/foundation/log';
 
 import type { Abi, Narrow } from 'abitype';
 import {
   Account,
+  Address,
   Chain,
   Hex,
   HttpTransport,
@@ -11,13 +11,13 @@ import {
   WalletClient,
   createPublicClient,
   createWalletClient,
-  getAddress,
   getContract,
-  http,
+  http
 } from 'viem';
 import { HDAccount, PrivateKeyAccount } from 'viem/accounts';
 
 import { L1ContractAddresses } from './l1_contract_addresses.js';
+import { ZERO_ETH_ADDRESS } from '@aztec/types';
 
 /**
  * Return type of the deployL1Contract function.
@@ -43,9 +43,9 @@ export type DeployL1Contracts = {
  */
 export interface ContractArtifacts {
   /**
-   * The conttract abi.
+   * The contract abi.
    */
-  contractAbi: Narrow<Abi | readonly unknown[]>;
+  contractAbi: Abi;
   /**
    * The contract bytecode
    */
@@ -123,7 +123,7 @@ export const deployL1Contracts = async (
     publicClient,
     contractsToDeploy.inbox.contractAbi,
     contractsToDeploy.inbox.contractBytecode,
-    [getAddress(registryAddress.toString())],
+    [registryAddress],
   );
   logger(`Deployed Inbox at ${inboxAddress}`);
 
@@ -132,7 +132,7 @@ export const deployL1Contracts = async (
     publicClient,
     contractsToDeploy.outbox.contractAbi,
     contractsToDeploy.outbox.contractBytecode,
-    [getAddress(registryAddress.toString())],
+    [registryAddress],
   );
   logger(`Deployed Outbox at ${outboxAddress}`);
 
@@ -141,19 +141,19 @@ export const deployL1Contracts = async (
     publicClient,
     contractsToDeploy.rollup.contractAbi,
     contractsToDeploy.rollup.contractBytecode,
-    [getAddress(registryAddress.toString())],
+    [registryAddress],
   );
   logger(`Deployed Rollup at ${rollupAddress}`);
 
   // We need to call a function on the registry to set the various contract addresses.
   const registryContract = getContract({
-    address: getAddress(registryAddress.toString()),
+    address: registryAddress,
     abi: contractsToDeploy.registry.contractAbi,
     publicClient,
     walletClient,
   });
   await registryContract.write.upgrade(
-    [getAddress(rollupAddress.toString()), getAddress(inboxAddress.toString()), getAddress(outboxAddress.toString())],
+    [rollupAddress, inboxAddress, outboxAddress],
     { account },
   );
 
@@ -165,7 +165,7 @@ export const deployL1Contracts = async (
   );
   logger(`Deployed contract deployment emitter at ${contractDeploymentEmitterAddress}`);
 
-  let decoderHelperAddress: EthAddress | undefined;
+  let decoderHelperAddress: Address | undefined;
   if (contractsToDeploy.decoderHelper) {
     decoderHelperAddress = await deployL1Contract(
       walletClient,
@@ -182,7 +182,7 @@ export const deployL1Contracts = async (
     inboxAddress,
     outboxAddress,
     contractDeploymentEmitterAddress,
-    decoderHelperAddress: decoderHelperAddress ?? EthAddress.ZERO,
+    decoderHelperAddress: decoderHelperAddress ?? ZERO_ETH_ADDRESS,
   };
 
   return {
@@ -204,10 +204,10 @@ export const deployL1Contracts = async (
 export async function deployL1Contract(
   walletClient: WalletClient<HttpTransport, Chain, Account>,
   publicClient: PublicClient<HttpTransport, Chain>,
-  abi: Narrow<Abi | readonly unknown[]>,
+  abi: Narrow<readonly unknown[] | Abi>,
   bytecode: Hex,
   args: readonly unknown[] = [],
-): Promise<EthAddress> {
+): Promise<Address> {
   const hash = await walletClient.deployContract({
     abi,
     bytecode,
@@ -220,5 +220,5 @@ export async function deployL1Contract(
     throw new Error(`No contract address found in receipt: ${JSON.stringify(receipt)}`);
   }
 
-  return EthAddress.fromString(receipt.contractAddress!);
+  return receipt.contractAddress!;
 }

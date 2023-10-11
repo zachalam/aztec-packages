@@ -1,5 +1,7 @@
 import { L1ContractAddresses } from '@aztec/ethereum';
-import { EthAddress } from '@aztec/foundation/eth-address';
+
+import { getAddress } from 'viem/utils';
+
 
 /**
  * There are 2 polling intervals used in this configuration. The first is the archiver polling interval, archiverPollingIntervalMS.
@@ -68,14 +70,14 @@ export function getConfigEnvVars(): ArchiverConfig {
   } = process.env;
   // Populate the relevant addresses for use by the archiver.
   const addresses: L1ContractAddresses = {
-    rollupAddress: ROLLUP_CONTRACT_ADDRESS ? EthAddress.fromString(ROLLUP_CONTRACT_ADDRESS) : EthAddress.ZERO,
-    registryAddress: REGISTRY_CONTRACT_ADDRESS ? EthAddress.fromString(REGISTRY_CONTRACT_ADDRESS) : EthAddress.ZERO,
-    inboxAddress: INBOX_CONTRACT_ADDRESS ? EthAddress.fromString(INBOX_CONTRACT_ADDRESS) : EthAddress.ZERO,
-    outboxAddress: EthAddress.ZERO,
+    rollupAddress: ROLLUP_CONTRACT_ADDRESS ? getAddress(ROLLUP_CONTRACT_ADDRESS) : ZERO_ETH_ADDRESS,
+    registryAddress: REGISTRY_CONTRACT_ADDRESS ? getAddress(REGISTRY_CONTRACT_ADDRESS) : ZERO_ETH_ADDRESS,
+    inboxAddress: INBOX_CONTRACT_ADDRESS ? getAddress(INBOX_CONTRACT_ADDRESS) : ZERO_ETH_ADDRESS,
+    outboxAddress: ZERO_ETH_ADDRESS,
     contractDeploymentEmitterAddress: CONTRACT_DEPLOYMENT_EMITTER_ADDRESS
-      ? EthAddress.fromString(CONTRACT_DEPLOYMENT_EMITTER_ADDRESS)
-      : EthAddress.ZERO,
-    decoderHelperAddress: EthAddress.ZERO,
+      ? getAddress(CONTRACT_DEPLOYMENT_EMITTER_ADDRESS)
+      : ZERO_ETH_ADDRESS,
+    decoderHelperAddress: ZERO_ETH_ADDRESS,
   };
   return {
     rpcUrl: ETHEREUM_HOST || 'http://127.0.0.1:8545/',

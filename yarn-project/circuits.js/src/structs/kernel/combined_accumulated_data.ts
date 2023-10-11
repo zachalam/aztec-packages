@@ -16,7 +16,7 @@ import {
 } from '../../cbind/constants.gen.js';
 import { makeTuple } from '../../index.js';
 import { serializeToBuffer } from '../../utils/serialize.js';
-import { AggregationObject, AztecAddress, EthAddress, Fr, FunctionData } from '../index.js';
+import { AggregationObject, AztecAddress, EthAddress, Fr, FunctionData, ZERO_ETH_ADDRESS, getAddress } from '../index.js';
 
 /**
  * The information assembled after the contract deployment was processed by the private kernel circuit.
@@ -45,7 +45,7 @@ export class NewContractData {
     public functionTreeRoot: Fr,
   ) {
     // Handle circuits emitting this as an AztecAddress
-    this.portalContractAddress = new EthAddress(portalContractAddress.toBuffer());
+    this.portalContractAddress = portalContractAddress! as EthAddress;
   }
 
   toBuffer() {
@@ -59,11 +59,11 @@ export class NewContractData {
    */
   static fromBuffer(buffer: Buffer | BufferReader): NewContractData {
     const reader = BufferReader.asReader(buffer);
-    return new NewContractData(reader.readObject(AztecAddress), new EthAddress(reader.readBytes(32)), reader.readFr());
+    return new NewContractData(reader.readObject(AztecAddress), getAddress('0x' + reader.readBytes(32).subarray(0, 20).toString('hex')), reader.readFr());
   }
 
   static empty() {
-    return new NewContractData(AztecAddress.ZERO, EthAddress.ZERO, Fr.ZERO);
+    return new NewContractData(AztecAddress.ZERO, ZERO_ETH_ADDRESS, Fr.ZERO);
   }
 }
 

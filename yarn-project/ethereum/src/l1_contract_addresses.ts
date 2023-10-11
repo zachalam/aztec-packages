@@ -1,4 +1,4 @@
-import { EthAddress } from '@aztec/foundation/eth-address';
+import { EthAddress } from "@aztec/types";
 
 /**
  * Provides the directory of current L1 contract addresses
