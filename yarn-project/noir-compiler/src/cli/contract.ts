@@ -5,12 +5,7 @@ import { writeFileSync } from 'fs';
 import { mkdirpSync } from 'fs-extra';
 import path, { resolve } from 'path';
 
-import {
-  compileUsingNargo,
-  compileUsingNoirWasm,
-  generateNoirContractInterface,
-  generateTypescriptContractInterface,
-} from '../index.js';
+import { compileUsingNoirWasm, generateNoirContractInterface, generateTypescriptContractInterface } from '../index.js';
 
 /**
  * Registers a 'contract' command on the given commander program that compiles an Aztec.nr contract project.
@@ -25,7 +20,6 @@ export function compileContract(program: Command, name = 'contract', log: LogFn 
     .option('-o, --outdir <path>', 'Output folder for the binary artifacts, relative to the project path', 'target')
     .option('-ts, --typescript <path>', 'Optional output folder for generating typescript wrappers', undefined)
     .option('-i, --interface <path>', 'Optional output folder for generating an Aztec.nr contract interface', undefined)
-    .option('--compiler <compiler>', 'Compiler to use (nargo|wasm)', 'nargo')
     .description('Compiles the contracts in the target project')
 
     .action(
@@ -36,7 +30,6 @@ export function compileContract(program: Command, name = 'contract', log: LogFn 
           outdir: string;
           typescript: string | undefined;
           interface: string | undefined;
-          compiler: 'nargo' | 'wasm';
         },
         /* eslint-enable jsdoc/require-jsdoc */
       ) => {
@@ -44,9 +37,8 @@ export function compileContract(program: Command, name = 'contract', log: LogFn 
         if (typeof projectPath !== 'string') throw new Error(`Missing project path argument`);
         const currentDir = process.cwd();
 
-        const compile = options.compiler === 'nargo' ? compileUsingNargo : compileUsingNoirWasm;
         log(`Compiling contracts...`);
-        const result = await compile(projectPath, { log });
+        const result = await compileUsingNoirWasm(projectPath, { log });
 
         for (const contract of result) {
           const artifactPath = resolve(projectPath, outdir, `${contract.name}.json`);

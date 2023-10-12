@@ -2,10 +2,9 @@
 
 # Compiles Aztec.nr contracts in parallel, bubbling any compilation errors
 
-source ./scripts/catch.sh
-source ./scripts/nargo_check.sh
-
-ROOT=$(pwd)
+self_path=$(realpath "$0")
+self_dir=$(dirname "$self_path")
+source "$self_dir/scripts/catch.sh"
 
 # Error flag file
 error_file="/tmp/error.$$"
@@ -15,19 +14,17 @@ pids=()
 # Set SIGCHLD handler
 trap handle_sigchld SIGCHLD # Trap any ERR signal and call the custom error handler
 
+COMPILER="$self_dir/../../noir-compiler/dest/cli.js"
+
 build() {
   CONTRACT_NAME=$1
-  CONTRACT_FOLDER="${CONTRACT_NAME}_contract"
+  CONTRACT_FOLDER="$self_dir/../src/contracts/${CONTRACT_NAME}_contract"
   echo "Compiling $CONTRACT_NAME..."
-  rm -f target/${CONTRACT_FOLDER}-*
-  rm -f target/debug_${CONTRACT_FOLDER}-*
+  rm -rf ${CONTRACT_FOLDER}/target
 
   # If the compilation fails, rerun the compilation with 'nargo' and show the compiler output.
-  nargo compile --package $CONTRACT_FOLDER --output-debug;
+  node "$COMPILER" contract "$CONTRACT_FOLDER"
 }
-
-# Check nargo version
-nargo_check
 
 # Build contracts
 for CONTRACT_NAME in "$@"; do

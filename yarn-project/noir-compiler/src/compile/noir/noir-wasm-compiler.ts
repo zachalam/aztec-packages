@@ -10,7 +10,7 @@ import { NoirPackage } from './package.js';
 import { initializeResolver } from './source-resolver.cjs';
 
 /** Compilation options */
-type NoirWasmCompileOptions = {
+export type NoirWasmCompileOptions = {
   /** Logging function */
   log?: LogFn;
 };

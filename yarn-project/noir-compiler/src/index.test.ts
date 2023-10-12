@@ -4,7 +4,7 @@ import { fileURLToPath } from '@aztec/foundation/url';
 import { execSync } from 'child_process';
 import path from 'path';
 
-import { compileUsingNargo, generateNoirContractInterface, generateTypescriptContractInterface } from './index.js';
+import { compileUsingNoirWasm, generateNoirContractInterface, generateTypescriptContractInterface } from './index.js';
 
 function isNargoAvailable() {
   try {
@@ -27,7 +27,7 @@ describe('noir-compiler', () => {
   describeIf(isNargoAvailable)('using nargo binary', () => {
     let compiled: ContractArtifact[];
     beforeAll(async () => {
-      compiled = await compileUsingNargo(projectPath);
+      compiled = await compileUsingNoirWasm(projectPath);
     });
 
     it('compiles the test contract', () => {

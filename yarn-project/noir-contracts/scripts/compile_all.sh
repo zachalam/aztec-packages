@@ -1,12 +1,12 @@
 #!/bin/bash
 # Compiles all noir contracts
 
-source ./scripts/nargo_check.sh
-
-echo "Checking noir version"
-nargo_check
-
 # Runs the compile scripts for all contracts.
 echo "Compiling all contracts"
 
-nargo compile --workspace --output-debug
+COMPILER="$(realpath $(dirname $0)/../../noir-compiler/dest/cli.js)"
+CONTRACTS="$(realpath $(dirname $0)/../src/contracts)"
+
+for contract in $CONTRACTS/*; do
+  node "$COMPILER" contract "$contract"
+done

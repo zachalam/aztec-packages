@@ -38,8 +38,8 @@
   },
   "dependencies": {
     "@aztec/foundation": "workspace:^",
-    "@noir-lang/noir_wasm": "^0.16.0",
-    "@noir-lang/source-resolver": "^0.16.0",
+    "@noir-lang/noir_wasm": "0.16.0",
+    "@noir-lang/source-resolver": "0.16.0",
     "base64-js": "^1.5.1",
     "commander": "^9.0.0",
     "fs-extra": "^11.1.1",
