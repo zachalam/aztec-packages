@@ -201,6 +201,13 @@ export class ExtendedContractData {
       Point.random(),
     );
   }
+
+  /**
+   * Creates an empty ExtendedContractData object.
+   */
+  static empty(): ExtendedContractData {
+    return new ExtendedContractData(ContractData.empty(), [], Fr.ZERO, Point.ZERO);
+  }
 }
 
 /**
@@ -261,5 +268,12 @@ export class ContractData {
    */
   static random(): ContractData {
     return new ContractData(AztecAddress.random(), EthAddress.random());
+  }
+
+  /**
+   * Creates an empty contract data object.
+   */
+  static empty(): ContractData {
+    return new ContractData(AztecAddress.ZERO, EthAddress.ZERO);
   }
 }
